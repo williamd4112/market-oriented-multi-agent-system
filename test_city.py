@@ -1,4 +1,4 @@
-from simulator.city_graph import CityGraph
+from simulator.city import City
 
 if __name__ == '__main__':
     intersections = [ 
@@ -10,6 +10,5 @@ if __name__ == '__main__':
         (5,0), (5,2), (5,4), (5,6), (5,8) , (5,12), (5,14),
         (7,0), (7,2), (7,4), (7,6), (7,8) , (7,12), (7,14),
     ]
-    g = CityGraph(intersections)
-    
-    print(g.get_poses_on_distance(0, 4.1))
+    city = City(intersections, 0, None)
+    city.step() 

@@ -2,7 +2,7 @@ import numpy as np
 
 from simulator.time_sys import TimeSystem
 from simulator.city_graph import CityGraph
-from util.distribution import NormalDistribution, PoissonProcess
+from simulator.city_customer_call_simulation import CityCustomerCallSimulation
  
 class City(object):
     def __init__(self, intersections, initial_hour, lambd_schedule):
@@ -15,25 +15,16 @@ class City(object):
         self.city_graph = CityGraph(self.intersections)
         self.time_system = TimeSystem(initial_hour)
 
-        self.poisson_process = PoissonProcess()
-        self.normal_distribution = NormalDistribution()
-
-    def _find_destination_with_distance(self, start_pos, distance):
-        '''
-        Retrieve a node of which distance to "start_pos" is close to a "distance" in the city_graph.
-        '''
-        # get a closet node in city_graph
-        # complement the remaining distance        
-        pos_closet_to_distance = self.city_graph.get
+        self.customer_call_sim = CityCustomerCallSimulation(self.intersections, self.city_graph)
               
     def step(self):
         # Setup the hyperparamters according to current time
-    
+        self.customer_call_sim.set(lambd=3)     
+
         # Generate customers' calls with the city_graph.
-        for intersection in self.intersections:
-            next_call_elapsed_time = self.poisson_process()
-            travelling_distance = self.normal_distribution()
-            destination = 
+        customer_calls = self.customer_call_sim()
+        for c in customer_calls:
+            print(c)
 
         # Submitting all customers' calls to the taxi-coordinator
 

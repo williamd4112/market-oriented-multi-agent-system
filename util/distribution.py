@@ -11,7 +11,8 @@ class NormalDistribution(object):
 
     def __call__(self):
         # TODO: Change to Box-Muller in final version
-        return np.random.normal(self.mu, self.sigma)
+        # TODO: Handle negative distance
+        return np.clip(np.random.normal(self.mu, self.sigma), 0.5, 3.5)
 
 class PoissonProcess(object):
     def __init__(self, lambd=1.0/40.0):
@@ -21,5 +22,5 @@ class PoissonProcess(object):
         self.lambd = lambd
     
     def __call__(self):
-        return random.expovariate(self.lambd))
+        return random.expovariate(self.lambd)
 
