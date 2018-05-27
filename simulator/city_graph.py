@@ -1,7 +1,9 @@
 import numpy as np
 
+from collections import deque as Queue
+
 from util.graph import Graph
-from util.common import check_duplicated_element
+from util.common import check_duplicated_element, movement_to_dir
 
 # TODO: Define in a common file
 INF = int(1e9)
@@ -32,6 +34,7 @@ class CityGraph(Graph):
             return (p[0] >= min_i and p[0] <= max_i and p[1] >= min_j and p[1] <= max_j)
         
         self.idx_table = {pos: idx for idx, pos in enumerate(intersections)}
+        self.idx_to_pos_table = {idx: pos for pos, idx in self.idx_table.items()}
         
         # Check bounds points
         if (min_i, min_j) not in self.idx_table or \
@@ -68,3 +71,83 @@ class CityGraph(Graph):
         Retrieve an node ID of a position.
         '''               
         return self.idx_table[pos]
+
+    def get_pos(self, idx):
+        '''
+        Retrieve a node's position by id
+        '''
+        return self.idx_to_pos_table[idx]
+
+    def get_shortest_distance(self, u, v):
+        '''
+        Retrieve the shortest distance between node u and v
+        '''
+        return self.distance_matrix[u, v]        
+
+    def get_poses_on_distance(self, start_node_idx, distance):
+        '''
+        Retrieve a list of positions of which distances to start_node equal to the given distance.
+        '''
+        nodes = self.get_nodes_with_distance(start_node_idx, distance)
+        poses = []
+        for node in nodes:
+            # Check if it can find a position on the lines connected to start_node_idx
+            distance_to_node = self.get_shortest_distance(start_node_idx, node)
+            node_pos = self.get_pos(node)
+            residual_distance = distance - distance_to_node
+            neighbor_nodes, neighbor_node_distances = self._get_all_neighbor_nodes(node)
+            for neighbor_node, neighbor_node_distance in zip(neighbor_nodes, neighbor_node_distances):
+                if (residual_distance < neighbor_node_distance):
+                    neighbor_node_pos = self.get_pos(neighbor_node)
+                    relative_movement = (neighbor_node_pos[0] - node_pos[0], neighbor_node_pos[1] - node_pos[1])
+                    direction = movement_to_dir(relative_movement)                     
+                    pos = (node_pos[0] + direction[0] * residual_distance, node_pos[1] + direction[1] * residual_distance)                
+                    # Check if we can travel to pos with shorter distance from the other side
+                    distance_start_to_the_other_side = self.get_shortest_distance(start_node_idx, neighbor_node)
+                    distance_the_other_side_to_pos = distance_start_to_the_other_side + (neighbor_node_distance - residual_distance)
+                    if distance_to_node + residual_distance <= distance_the_other_side_to_pos:
+                        poses.append(pos)
+        return list(set(poses))
+    
+    def get_nodes_with_distance(self, start_node_idx, distance):
+        '''
+        Retrieve a list of nodes of which distance to start_node is within the given distance.
+        '''
+        visited = [ False for _ in range(len(self.idx_table))]
+
+        q = Queue()
+        q.append((start_node_idx, 0))
+
+        nodes = []
+        
+        while len(q) > 0:            
+            current_node_idx, current_accumulated_distance = q.pop()
+            nodes.append(current_node_idx)
+            # Get the list of neighbor node of current_node           
+            if not (visited[current_node_idx]):
+                neighbor_nodes, neighbor_nodes_distances = self._get_all_neighbor_nodes(current_node_idx)
+                for neighbor_node, neighbor_node_distance in zip(neighbor_nodes, neighbor_nodes_distances):
+                    new_accumulated_distance = current_accumulated_distance + neighbor_node_distance
+
+                    if self.distance_matrix[start_node_idx, neighbor_node] <= distance:
+                        if new_accumulated_distance == self.distance_matrix[start_node_idx, neighbor_node]:
+                            q.append((neighbor_node, new_accumulated_distance))
+
+                # Mark current_node as visted
+                visited[current_node_idx] = True
+        return nodes
+
+    def _get_all_neighbor_nodes(self, node_idx):
+        '''
+        Return a list of indexes of neighbor nodes and a list of distance to neighbor nodes.
+        '''
+        neighbor_nodes = []
+        neighbor_nodes_distance = []
+        for v in range(len(self.adj_matrix[node_idx])):
+            if self.adj_matrix[node_idx, v] < INF and v != node_idx:
+                neighbor_nodes.append(v)
+                neighbor_nodes_distance.append(self.adj_matrix[node_idx, v])
+        return neighbor_nodes, neighbor_nodes_distance
+    
+
+

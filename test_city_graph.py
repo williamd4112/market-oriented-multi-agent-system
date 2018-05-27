@@ -12,12 +12,4 @@ if __name__ == '__main__':
     ]
     g = CityGraph(intersections)
     
-    adj_matrix = g.adj_matrix
-    
-    start = (0,2)    
-    for pos in intersections:
-        u = g.get_id(start) 
-        v = g.get_id(pos)
-        l = adj_matrix[u, v]
-        if l < 1e9 and l != 0:
-            print(start, pos, adj_matrix[u, v])
+    print(g.get_poses_on_distance(0, 1.0))
