@@ -20,6 +20,7 @@ class TaxiCoordinator(object):
     def allocate(self, customer_calls):    
         # TODO: Consider look-ahead (consider multiple calls at a time)
         for customer_call in customer_calls:
+            has_call_taken = False
             # Find all unrestricted drivers, if there is no unrestricted drivers, drop this call
             unrestricted_drivers = self._get_unrestricted_drivers(customer_call)
             if len(unrestricted_drivers) > 0:
@@ -27,20 +28,21 @@ class TaxiCoordinator(object):
                 plans = [driver.generate_plan(customer_call) for driver in unrestricted_drivers]
 
                 # Check the availability with drivers' timeline
-                available_drivers_and_plans = [(driver, plan) for driver, plan in zip(unrestricted_drivers, plans) if driver.is_available(plan)]
-
-                print(available_drivers_and_plans)
-                # Send this call to all drivers
-                #bids = [driver.bid(customer_call) for driver in available_drivers]
-
-                # Select the drivers according to auction algorithm
-                #winner_index = self._choose_bid(bids)
+                available_drivers_and_plans = [(driver, plan) for driver, plan in zip(unrestricted_drivers, plans) if driver.is_available(plan)]                               
                 
-                # Assign the customer call to the winner
-                #available_drivers[winner_index].assign(customer_call)
-                
-                # Increase the coordinator's payoff
-                #self._deal_call(customer_call)
+                # TODO: Check if the drivers want to give up this call                    
+                if len(available_drivers_and_plans) > 0:
+                    # Select the drivers according to auction algorithm
+                    winner_driver, winner_plan, winner_payment = self._choose_bid(available_drivers_and_plans)
+                    
+                    # Assign the customer call to the winner
+                    winner_driver.assign(winner_plan)
+                    
+                    # Increase the coordinator's payoff
+                    self._deal_call(customer_call)
+                    has_call_taken = True
+            if (has_call_taken):
+                print('Accept {}'.format(customer_call))
 
     def _init_drivers(self, drivers_schedule):
         '''
@@ -48,8 +50,8 @@ class TaxiCoordinator(object):
         Each schedule is a tuple (shift_start, shift_end) in simulation time(hr)
         '''        
         drivers = []
-        for schedule in drivers_schedule:
-            driver = TaxiDriver(init_pos=self.init_pos, city_graph=self.city.city_graph)
+        for idx, schedule in enumerate(drivers_schedule):
+            driver = TaxiDriver(idx=idx, init_pos=self.init_pos, city_graph=self.city.city_graph)
             for event in schedule:
                 driver.timeline.add_event(TimeLineEvent(event[0], event[1], 'Shift')) 
             drivers.append(driver)
@@ -66,14 +68,23 @@ class TaxiCoordinator(object):
                 unrestricted_drivers.append(driver)
         return unrestricted_drivers
 
-    def _choose_bid(self, bids):
+    def _choose_bid(self, drivers_and_plans):
         '''
-        Select a bidder according to the set auction type.
+        Select a driver according to its bidding price in the plan.
+        Return a winner driver and a winner payment
         '''
-        raise NotImplemented()
+        assert len(drivers_and_plans) > 0
+        if len(drivers_and_plans) == 1:
+            return drivers_and_plans[0][0], drivers_and_plans[0][1], drivers_and_plans[0][1].bid
+        sorted_drivers_and_plans = sorted(drivers_and_plans, key=lambda dp: dp[1].bid)
+        if self.auction_type == 'first-price':
+            return sorted_drivers_and_plans[0][0], sorted_drivers_and_plans[0][1], sorted_drivers_and_plans[0][1].bid
+        elif self.auction_type == 'second-price':
+            return sorted_drivers_and_plans[0][0], sorted_drivers_and_plans[0][1], sorted_drivers_and_plans[1][1].bid               
 
-    def _deal_call(self, call):
+    def _deal_call(self, plan):
         '''
-        Increase the coordinator's payoff with this call.
+        Increase the coordinator's payoff with this plan.
         '''        
-        raise NotImplemented()
+        # TODO: Compute pay-off
+        self.current_payoff = 0 

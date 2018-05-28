@@ -27,8 +27,10 @@ class City(object):
         # Accumulate the time
         self.time_sys.step()
 
-        return customer_calls
+        return sorted(customer_calls, key=lambda call: call.time)
 
     def time(self):
         return str(self.time_sys)
-         
+   
+    def day(self):
+        return self.time_sys.day() 

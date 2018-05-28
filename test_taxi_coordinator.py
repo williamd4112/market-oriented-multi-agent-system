@@ -1,7 +1,15 @@
+import logging
 from simulator.city import City
 from auction.taxi_coordinator import TaxiCoordinator
 
+FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
 if __name__ == '__main__':
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+    logging.basicConfig(format=FORMAT)
+
     intersections = [ 
 	    # (x,y) is the place of a intersection
         (0,0), (0,2), (0,6), (0,8), (0,12), (0,14),
@@ -14,11 +22,12 @@ if __name__ == '__main__':
     city = City(intersections, 0, None)
     coordinator = TaxiCoordinator(city=city, 
                 auction_type='first-price', 
-                drivers_schedule=[  [(0, 12), (18, 24)],
-                                    [(0, 6), (12, 24)]],
+                drivers_schedule=[  #[(0, 12)],
+                                    #[(0, 12)],
+                                    []],
                 init_pos=(4, 8))
     print(coordinator.drivers)
-    #customer_calls = city.step() 
-    #coordinator.allocate(customer_calls)
-    #print(coordinator.payoff)
+    while city.day() < 1:
+        customer_calls = city.step() 
+        coordinator.allocate(customer_calls)
     

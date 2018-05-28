@@ -42,9 +42,9 @@ class TimeLine(object):
             return True
 
     def __repr__(self):
-        string = ''
+        event_reprs = []
         for e in self.events:
-            string += "{}: {} - {}\n".format(e.event_name, e.start_time, e.end_time)
-        return string
+            event_reprs.append("({}: {} - {})".format(e.event_name, e.start_time, e.end_time))        
+        return ','.join(event_reprs)
         
 

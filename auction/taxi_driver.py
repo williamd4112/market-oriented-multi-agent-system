@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 
 from sortedcontainers import SortedList
@@ -7,15 +8,24 @@ from util.timeline import TimeLine, TimeLineEvent
 VELOCITY = 30
 
 class Plan(object):
-    def __init__(self, start_time, end_time, start_pos, end_pos, requested_distance):
+    def __init__(self, start_time, end_time, start_pos, end_pos, requested_distance, bid=0):
         self.start_time = start_time
         self.end_time = end_time
         self.start_pos = start_pos
         self.end_pos = end_pos
         self.requested_distance = requested_distance
+        self.bid = bid
+
+    def __repr__(self):
+        return 'Plan(Time({} - {}), Required time: {}, Pos({}, {}), Distance:{}, Bid:{})'.format(self.start_time, self.end_time,
+                                                                        (self.end_time - self.start_time),
+                                                                        self.start_pos, self.end_pos,
+                                                                        self.requested_distance,
+                                                                        self.bid)
 
 class TaxiDriver(object):
-    def __init__(self, init_pos, city_graph):
+    def __init__(self, idx, init_pos, city_graph):
+        self.idx = idx
         self.payoff = 0
         self.init_pos = init_pos
         self.city_graph = city_graph
@@ -28,8 +38,11 @@ class TaxiDriver(object):
         '''
         # Get a latest call which this driver won
         plan = self._get_latest_plan()
+        if plan is None: 
+            return False
+
         # Compute restricted time period
-        restricted_hrs = plan.distance / VELOCITY
+        restricted_hrs = plan.requested_distance / VELOCITY
         # Compute forbidden time
         latest_start_time = plan.start_time
         forbidden_time = latest_start_time + restricted_hrs
@@ -40,21 +53,21 @@ class TaxiDriver(object):
         '''
         Check availability of this driver
         '''
-        plan = self._make_plan(call)
         event = TimeLineEvent(plan.start_time, plan.end_time, 'Call')
-        return self.timeline.is_valid(event) 
+        valid = self.timeline.is_valid(event) 
+        #print('Event', event, 'Valid', valid)
+        return valid
        
-    def bid(self, plan):
+    def assign(self, plan):
         '''
-        Return a bidding price according to the bidding strategy
-        '''
-        raise NotImplemented()
-
-    def assign(self, call):
-        '''
-        Assign a call for a driver. This call will be added to driver's schedule. The driver's payoff will be increased.
+        Assign a plan for a driver. This call will be added to driver's schedule. The driver's payoff will be increased.
         '''    
-        raise NotImplemented()
+        event = TimeLineEvent(plan.start_time, plan.end_time, 'Call')
+        self.timeline.add_event(event)
+        self.plans.add(plan)
+        
+        # TODO: Compute payoff
+        print('Driver-{} takes {}'.format(self.idx, plan))
 
     def generate_plan(self, call):
         '''
@@ -78,8 +91,10 @@ class TaxiDriver(object):
         
         # TODO: accumulated payoff
         # TODO: compute route
+        # TODO: compute bidding price
 
         plan = Plan(start_time, end_time, start_pos, end_pos, requested_distance=call.distance)
+
         return plan
 
     def _get_latest_plan(self):
@@ -92,9 +107,10 @@ class TaxiDriver(object):
 
     def _compute_driving_time(self, start_pos, call):
         '''
-        Retrive the required driving time from driver pos to dest.
+        Retrive the required driving time from driver pos to customer's pos and customer's pos to dest
         '''
-        raise NotImplemented()
+        # TODO: Compute driver to customer pos
+        return call.distance / VELOCITY
     
     def __repr__(self):
         return 'Driver({})'.format(str(self.timeline))
