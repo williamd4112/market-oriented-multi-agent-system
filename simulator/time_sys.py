@@ -35,7 +35,6 @@ class TimeSystem(object):
         rep = int(self.hour_in_a_day() / TimeSystem.HALF_PERIOD)        
         return '%dd%dh%s' % (day, hour, TimeSystem.PERIOD_REPRS[rep])
 
-
 if __name__ == '__main__':
     sys = TimeSystem(12)
     print(sys)

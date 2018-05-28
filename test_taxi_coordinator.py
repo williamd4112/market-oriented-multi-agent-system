@@ -1,4 +1,5 @@
 import logging
+import os
 from simulator.city import City
 from auction.taxi_coordinator import TaxiCoordinator
 
@@ -27,7 +28,8 @@ if __name__ == '__main__':
                                     []],
                 init_pos=(4, 8))
     print(coordinator.drivers)
-    while city.day() < 1:
+    while city.time_sys.hour_in_sim() < 5:
         customer_calls = city.step() 
         coordinator.allocate(customer_calls)
+    coordinator.drivers[0].timeline.dump_json(os.path.join('data', 'driver_0.json'))
     

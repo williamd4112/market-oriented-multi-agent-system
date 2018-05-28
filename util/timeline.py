@@ -1,7 +1,8 @@
+import json
+
 from sortedcontainers import SortedList
 from collections import namedtuple
 
-TimeLineEvent = namedtuple('TimeLineEvent', ['start_time', 'end_time', 'event_name'])
 Endpoint = namedtuple('Endpoint', ['time', 'type'])
 
 TYPE_START = True
@@ -17,6 +18,22 @@ def _is_overlap(e1, e2):
         return e1.end_time > e2.start_time
     elif e1.start_time > e2.start_time:
         return e2.end_time > e1.start_time
+
+class TimeLineEvent(object):
+    def __init__(self, start_time, end_time, event_name=None, route=None):
+        self.start_time = start_time
+        self.end_time = end_time
+        self.event_name = event_name
+        self.route = route
+
+    def __jsonencode__(self):
+        return self.__dict__
+
+class TimeLineEventJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, TimeLineEvent):
+            return obj.__jsonencode__()
+        return json.JSONEncoder.default(self, obj)
 
 class TimeLine(object):
     def __init__(self):
@@ -46,5 +63,12 @@ class TimeLine(object):
         for e in self.events:
             event_reprs.append("({}: {} - {})".format(e.event_name, e.start_time, e.end_time))        
         return ','.join(event_reprs)
+
+    def dump_json(self, path):
+        l = [e for e in self.events]
+        with open(path, 'w') as f:
+            json.dump(l, f, cls=TimeLineEventJSONEncoder)
+
+
         
 

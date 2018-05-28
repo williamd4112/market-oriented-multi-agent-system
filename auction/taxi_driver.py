@@ -65,7 +65,7 @@ class TaxiDriver(object):
         '''
         Assign a plan for a driver. This call will be added to driver's schedule. The driver's payoff will be increased.
         '''    
-        event = TimeLineEvent(plan.start_time, plan.end_time, 'Call')
+        event = TimeLineEvent(plan.start_time, plan.end_time, 'Call', plan.route)
         self.timeline.add_event(event)
         self.plans.add(plan)
         
@@ -102,7 +102,8 @@ class TaxiDriver(object):
         plan = Plan(start_time, end_time, start_pos, end_pos,
                 pickup_distance=distance_to_customer,
                 requested_distance=distance_to_dest,
-                bid=bid)
+                bid=bid,
+                route=route_to_customer)
 
         return plan
 
