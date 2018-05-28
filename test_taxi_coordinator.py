@@ -1,4 +1,5 @@
-from simulator.city_graph import CityGraph
+from simulator.city import City
+from auction.taxi_coordinator import TaxiCoordinator
 
 if __name__ == '__main__':
     intersections = [ 
@@ -10,6 +11,9 @@ if __name__ == '__main__':
         (5,0), (5,2), (5,4), (5,6), (5,8) , (5,12), (5,14),
         (7,0), (7,2), (7,4), (7,6), (7,8) , (7,12), (7,14),
     ]
-    g = CityGraph(intersections)
+    city = City(intersections, 0, None)
+    coordinator = TaxiCoordinator(auction_type='first-price', drivers_schedule=[('0AM', '3AM')])
+    customer_calls = city.step() 
+    coordinator.allocate(customer_calls)
+    print(coordinator.payoff)
     
-    print(g.get_poses_on_distance(0, 3))

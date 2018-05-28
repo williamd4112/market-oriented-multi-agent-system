@@ -84,6 +84,12 @@ class CityGraph(Graph):
         '''
         return self.distance_matrix[u, v]        
 
+    def get_shortest_path(self, u, v):
+        '''
+        Retrieve the shortest path a list of positions from node u to v
+        '''
+        return self.get_path(u, v)
+
     def get_poses_on_distance(self, start_node_idx, distance):
         '''
         Retrieve a list of positions of which distances to start_node equal to the given distance.
@@ -106,35 +112,17 @@ class CityGraph(Graph):
                     distance_start_to_the_other_side = self.get_shortest_distance(start_node_idx, neighbor_node)
                     distance_the_other_side_to_pos = distance_start_to_the_other_side + (neighbor_node_distance - residual_distance)
                     if distance_to_node + residual_distance <= distance_the_other_side_to_pos:
-                        poses.append(pos)
+                        poses.append(pos)                        
         return list(set(poses))
     
     def get_nodes_with_distance(self, start_node_idx, distance):
         '''
         Retrieve a list of nodes of which distance to start_node is within the given distance.
         '''
-        visited = [ False for _ in range(len(self.idx_table))]
-
-        q = Queue()
-        q.append((start_node_idx, 0))
-
         nodes = []
-        
-        while len(q) > 0:            
-            current_node_idx, current_accumulated_distance = q.pop()
-            nodes.append(current_node_idx)
-            # Get the list of neighbor node of current_node           
-            if not (visited[current_node_idx]):
-                neighbor_nodes, neighbor_nodes_distances = self._get_all_neighbor_nodes(current_node_idx)
-                for neighbor_node, neighbor_node_distance in zip(neighbor_nodes, neighbor_nodes_distances):
-                    new_accumulated_distance = current_accumulated_distance + neighbor_node_distance
-
-                    if self.distance_matrix[start_node_idx, neighbor_node] <= distance:
-                        if new_accumulated_distance == self.distance_matrix[start_node_idx, neighbor_node]:
-                            q.append((neighbor_node, new_accumulated_distance))
-
-                # Mark current_node as visted
-                visited[current_node_idx] = True
+        for v in range(len(self.distance_matrix)):
+            if self.distance_matrix[start_node_idx, v] <= distance:
+                nodes.append(v)              
         return nodes
 
     def _get_all_neighbor_nodes(self, node_idx):

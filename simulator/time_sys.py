@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 class TimeSystem(object):
     '''
@@ -8,20 +9,31 @@ class TimeSystem(object):
     HALF_PERIOD = PERIOD / 2
     PERIOD_REPRS = ['AM', 'PM']
     
-    def __init__(self, initial_hour):
-        self.current_hour = initial_hour
+    def __init__(self, initial_hour, initial_day=0):
+        self.current_sim_hour = initial_hour * initial_day + initial_hour
     
     def step(self, stride=1):
-        self.current_hour += stride
-        self.current_hour %= TimeSystem.PERIOD
+        self.current_sim_hour += stride
+        self.current_day = math.floor(self.current_sim_hour / TimeSystem.PERIOD)          
+        self.current_hour = self.current_sim_hour % TimeSystem.PERIOD
 
-    def __call__(self):
-        return self.current_hour
+    def day(self):
+        return math.floor(self.hour_in_sim() / TimeSystem.PERIOD)          
+
+    def hour_in_half_day(self):
+        return self.hour_in_a_day() % TimeSystem.HALF_PERIOD
+
+    def hour_in_a_day(self):
+        return self.hour_in_sim() % TimeSystem.PERIOD
     
+    def hour_in_sim(self):
+        return self.current_sim_hour
+ 
     def __repr__(self):
-        hour = int(self.current_hour % TimeSystem.HALF_PERIOD)
-        rep = int(self.current_hour / TimeSystem.HALF_PERIOD)        
-        return '%d%s' % (hour, TimeSystem.PERIOD_REPRS[rep])
+        day = self.day()
+        hour = int(self.hour_in_half_day())
+        rep = int(self.hour_in_a_day() / TimeSystem.HALF_PERIOD)        
+        return '%dd%dh%s' % (day, hour, TimeSystem.PERIOD_REPRS[rep])
 
 
 if __name__ == '__main__':
