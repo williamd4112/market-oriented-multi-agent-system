@@ -13,7 +13,7 @@ class City(object):
         '''
         self.intersections = intersections
         self.city_graph = CityGraph(self.intersections)
-        self.time_system = TimeSystem(initial_hour)
+        self.time_sys = TimeSystem(initial_hour)
 
         self.customer_call_sim = CityCustomerCallSimulation(self.intersections, self.city_graph, self.time_sys)
               
@@ -25,7 +25,7 @@ class City(object):
         customer_calls = self.customer_call_sim()
 
         # Accumulate the time
-        self.time_system.step()
+        self.time_sys.step()
 
         return customer_calls
 

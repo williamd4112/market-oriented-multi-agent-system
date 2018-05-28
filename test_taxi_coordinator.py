@@ -12,8 +12,13 @@ if __name__ == '__main__':
         (7,0), (7,2), (7,4), (7,6), (7,8) , (7,12), (7,14),
     ]
     city = City(intersections, 0, None)
-    coordinator = TaxiCoordinator(auction_type='first-price', drivers_schedule=[('0AM', '3AM')])
-    customer_calls = city.step() 
-    coordinator.allocate(customer_calls)
-    print(coordinator.payoff)
+    coordinator = TaxiCoordinator(city=city, 
+                auction_type='first-price', 
+                drivers_schedule=[  [(0, 12), (18, 24)],
+                                    [(0, 6), (12, 24)]],
+                init_pos=(4, 8))
+    print(coordinator.drivers)
+    #customer_calls = city.step() 
+    #coordinator.allocate(customer_calls)
+    #print(coordinator.payoff)
     

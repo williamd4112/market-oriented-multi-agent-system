@@ -14,9 +14,9 @@ def _is_overlap(e1, e2):
     if e1.start_time == e2.start_time:
         return True
     elif e1.start_time < e2.start_time:
-        return e1.end_time >= e2.start_time
+        return e1.end_time > e2.start_time
     elif e1.start_time > e2.start_time:
-        return e2.end_time >= e1.start_time
+        return e2.end_time > e1.start_time
 
 class TimeLine(object):
     def __init__(self):
