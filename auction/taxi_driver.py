@@ -8,18 +8,21 @@ from util.timeline import TimeLine, TimeLineEvent
 VELOCITY = 30
 
 class Plan(object):
-    def __init__(self, start_time, end_time, start_pos, end_pos, requested_distance, bid=0):
+    def __init__(self, start_time, end_time, start_pos, end_pos, pickup_distance, requested_distance, bid=0, route=None):
         self.start_time = start_time
         self.end_time = end_time
         self.start_pos = start_pos
         self.end_pos = end_pos
+        self.pickup_distance = pickup_distance
         self.requested_distance = requested_distance
         self.bid = bid
+        self.route = route
 
     def __repr__(self):
-        return 'Plan(Time({} - {}), Required time: {}, Pos({}, {}), Distance:{}, Bid:{})'.format(self.start_time, self.end_time,
+        return 'Plan(Time({} - {}), Required time: {}, Pos({}, {}), Pic Distance: {}, Req Distance:{}, Bid:{})'.format(self.start_time, self.end_time,
                                                                         (self.end_time - self.start_time),
                                                                         self.start_pos, self.end_pos,
+                                                                        self.pickup_distance,
                                                                         self.requested_distance,
                                                                         self.bid)
 
@@ -76,6 +79,7 @@ class TaxiDriver(object):
         return self._make_plan(call)
     
     def _make_plan(self, call):
+
         # if no plan: start from init_pos and start from calling time
         if len(self.plans) == 0:
             start_time = call.time
@@ -84,16 +88,21 @@ class TaxiDriver(object):
         else:
             latest_plan = self._get_latest_plan()
             start_time = latest_plan.end_time
-            start_pos = latest_plan.end_pos
-        driving_time = self._compute_driving_time(start_pos, call)
-        end_time = start_time + driving_time
+            start_pos = latest_plan.end_pos     
         end_pos = call.destination_pos
-        
-        # TODO: accumulated payoff
-        # TODO: compute route
-        # TODO: compute bidding price
 
-        plan = Plan(start_time, end_time, start_pos, end_pos, requested_distance=call.distance)
+        distance_to_customer, route_to_customer = self.city_graph.get_pos_shortest_distance(start_pos, end_pos)
+        distance_to_dest = call.distance
+
+        driving_time = self._compute_driving_time(distance_to_customer, distance_to_dest)
+        end_time = start_time + driving_time
+        
+        bid = self._compute_bidding_price(distance_to_customer, distance_to_dest)
+
+        plan = Plan(start_time, end_time, start_pos, end_pos,
+                pickup_distance=distance_to_customer,
+                requested_distance=distance_to_dest,
+                bid=bid)
 
         return plan
 
@@ -105,12 +114,18 @@ class TaxiDriver(object):
             return None
         return self.plans[-1]
 
-    def _compute_driving_time(self, start_pos, call):
+    def _compute_driving_time(self, distance_to_customer, distance_to_dest):
         '''
         Retrive the required driving time from driver pos to customer's pos and customer's pos to dest
         '''
-        # TODO: Compute driver to customer pos
-        return call.distance / VELOCITY
+        return (distance_to_customer + distance_to_dest) / VELOCITY
+
+    def _compute_bidding_price(self, distance_to_customer, distance_to_dest):
+        '''
+        Retrieve the bidding price.
+        '''
+        # TODO: Return bidding price with bidding strategy
+        return 1
     
     def __repr__(self):
         return 'Driver({})'.format(str(self.timeline))
