@@ -94,11 +94,14 @@ class CityGraph(Graph):
         '''
         return self.distance_matrix[u, v]        
 
-    def get_shortest_path(self, u, v):
+    def get_shortest_path(self, u, v, convert_to_pos=False):
         '''
         Retrieve the shortest path a list of positions from node u to v
         '''
-        return self.get_path(u, v)
+        path = self.get_path(u, v)
+        if convert_to_pos:
+            return [self.get_pos(node) for node in path]
+        return path
 
     def get_pos_shortest_distance(self, pu, pv):
         '''
@@ -109,24 +112,43 @@ class CityGraph(Graph):
         v_id = self.get_id(pv)
         if u_id is None:
             possible_node_u = self._get_edge_with_pos(pu)
+            u_is_node = False
         else:
             possible_node_u = [u_id]
+            u_is_node = True
 
         if v_id is None:
-            possible_node_v = self._get_edge_with_pos(pv)
+            possible_node_v = self._get_edge_with_pos(pv)            
+            v_is_node = False
         else:
             possible_node_v = [v_id]
+            v_is_node = True
        
         if possible_node_v is None or possible_node_u is None:
             return None        
 
         min_distance = INF
+        min_distance_idx = None
+        paths = []
+        cnt = 0
         for node_u in possible_node_u:        
             for node_v in possible_node_v:
                 distance_node_u_to_node_v = self.get_shortest_distance(node_u, node_v)
+                distance_node_u_to_pos_u = self._get_node_to_neighbor_pos_distance(node_u, pu)
                 distance_node_v_to_pos_v = self._get_node_to_neighbor_pos_distance(node_v, pv)
-                min_distance = min(min_distance, distance_node_u_to_node_v + distance_node_v_to_pos_v)
-        return min_distance
+                total_distance = distance_node_u_to_pos_u + distance_node_u_to_node_v + distance_node_v_to_pos_v
+                if total_distance < min_distance:
+                    min_distance = total_distance
+                    min_distance_idx = cnt
+                path_node_u_to_node_v = self.get_shortest_path(node_u, node_v, convert_to_pos=True)
+                path = path_node_u_to_node_v
+                if not u_is_node:
+                    path = [pu] + path
+                if not v_is_node:
+                    path = path + [pv]
+                paths.append(path)
+                cnt += 1
+        return min_distance, paths[min_distance_idx]
 
     def get_poses_on_distance(self, start_node_idx, distance):
         '''

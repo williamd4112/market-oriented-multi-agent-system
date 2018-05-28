@@ -12,7 +12,9 @@ if __name__ == '__main__':
     ]
     g = CityGraph(intersections)
     
-    print(g.get_poses_on_distance(0, 3))
+    print(g.get_poses_on_distance(0, 3))    
+    print(g.get_pos_shortest_distance((0, 0.5), (0, 2)))   
+    print(g.get_pos_shortest_distance((0.5, 0.5), (0, 2)))
     print(g.get_pos_shortest_distance((0, 0), (0, 2)))
     print(g.get_pos_shortest_distance((0, 0), (0, 3)))
     print(g.get_pos_shortest_distance((0, 0), (1, 2)))
@@ -20,3 +22,9 @@ if __name__ == '__main__':
     print(g.get_pos_shortest_distance((0, 0), (0.5, 1)))
     print(g.get_pos_shortest_distance((0, 0), (5, 6)))
     print(g.get_pos_shortest_distance((0, 0), (3, 6)))
+    print(g.get_pos_shortest_distance((2, 2), (0, 2)))   
+    print(g.get_pos_shortest_distance((1, 2), (0, 2)))   
+    print(g.get_pos_shortest_distance((1, 2), (0, 0)))   
+    print(g.get_pos_shortest_distance((1, 2), (0, 0.1)))   
+    
+    
