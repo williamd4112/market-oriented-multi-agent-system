@@ -18,7 +18,7 @@ class City(object):
         self.customer_call_sim = CityCustomerCallSimulation(self.intersections, self.city_graph, self.time_sys)
               
     def step(self):
-        # Setup the hyperparamters according to current time
+        # TODO: Setup the hyperparamters according to current time
         self.customer_call_sim.set(lambd=3)     
 
         # Generate customers' calls with the city_graph.

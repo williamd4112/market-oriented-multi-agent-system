@@ -64,18 +64,28 @@ class CityGraph(Graph):
                     length += 1
                     next_pos = (pos[0] + d[0] * length, pos[1] + d[1] * length)
         self.adj_matrix = adj_matrix.copy()
+
+        # Initialize the edges list
+        edges = []
+        for u in range(num_vertex):
+            for v in range(u, num_vertex):      
+                if u != v and self.adj_matrix[u, v] < INF:
+                    edges.append((u, v))
+        self.edges = edges
         super(CityGraph, self).__init__(adj_matrix)
 
     def get_id(self, pos):
         '''
         Retrieve an node ID of a position.
         '''               
+        if pos not in self.idx_table: return None
         return self.idx_table[pos]
 
     def get_pos(self, idx):
         '''
         Retrieve a node's position by id
         '''
+        if idx not in self.idx_to_pos_table: return None
         return self.idx_to_pos_table[idx]
 
     def get_shortest_distance(self, u, v):
@@ -89,6 +99,34 @@ class CityGraph(Graph):
         Retrieve the shortest path a list of positions from node u to v
         '''
         return self.get_path(u, v)
+
+    def get_pos_shortest_distance(self, pu, pv):
+        '''
+        Retrieve the shortest distance from pos pu to pv.
+        Return None if the pos is not reacheable
+        '''
+        u_id = self.get_id(pu)
+        v_id = self.get_id(pv)
+        if u_id is None:
+            possible_node_u = self._get_edge_with_pos(pu)
+        else:
+            possible_node_u = [u_id]
+
+        if v_id is None:
+            possible_node_v = self._get_edge_with_pos(pv)
+        else:
+            possible_node_v = [v_id]
+       
+        if possible_node_v is None or possible_node_u is None:
+            return None        
+
+        min_distance = INF
+        for node_u in possible_node_u:        
+            for node_v in possible_node_v:
+                distance_node_u_to_node_v = self.get_shortest_distance(node_u, node_v)
+                distance_node_v_to_pos_v = self._get_node_to_neighbor_pos_distance(node_v, pv)
+                min_distance = min(min_distance, distance_node_u_to_node_v + distance_node_v_to_pos_v)
+        return min_distance
 
     def get_poses_on_distance(self, start_node_idx, distance):
         '''
@@ -136,6 +174,47 @@ class CityGraph(Graph):
                 neighbor_nodes.append(v)
                 neighbor_nodes_distance.append(self.adj_matrix[node_idx, v])
         return neighbor_nodes, neighbor_nodes_distance
+
+    def _get_edge_with_pos(self, pos):
+        for edge in self.edges:       
+            i0, j0 = self.get_pos(edge[0])
+            i1, j1 = self.get_pos(edge[1])
+            # Horizontal edge
+            if i0 == i1:
+                min_j = min(j0, j1)
+                max_j = max(j0, j1)
+                if pos[0] == i0 and (pos[1] < max_j and pos[1] > min_j):
+                    return list(edge)
+            # Vertical edge
+            elif j0 == j1:
+                min_i = min(i0, i1)
+                max_i = max(i0, i1)
+                if pos[1] == j0 and (pos[0] < max_i and pos[0] > min_i):
+                    return list(edge)
+            else:
+                raise Exception('Error: invalid edge.')
+
+    def _get_node_to_neighbor_pos_distance(self, node, pos):
+        node_pos = self.get_pos(node)               
+        # Horizontal
+        if node_pos[0] == pos[0]:
+            distance = abs(pos[1] - node_pos[1])
+        # Vertical
+        elif node_pos[1] == pos[1]:
+            distance = abs(pos[0] - node_pos[0])
+        else:
+            raise Exception('Error: invalid position.')
+        
+        if distance > self._get_max_neighbor_edge(node):
+            raise Exception('Error: position is not in neighbor.')
+        return distance
+        
+    def _get_max_neighbor_edge(self, node):
+        max_len = -INF
+        for l in self.adj_matrix[node]:
+            if max_len < INF:
+                max_len = max(max_len, l)
+        return max_len
     
 
 
