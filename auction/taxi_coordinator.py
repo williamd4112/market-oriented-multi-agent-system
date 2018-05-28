@@ -28,9 +28,9 @@ class TaxiCoordinator(object):
                 plans = [driver.generate_plan(customer_call) for driver in unrestricted_drivers]
 
                 # Check the availability with drivers' timeline
-                available_drivers_and_plans = [(driver, plan) for driver, plan in zip(unrestricted_drivers, plans) if driver.is_available(plan)]                               
-                
-                # TODO: Check if the drivers want to give up this call                    
+                available_drivers_and_plans = [(driver, plan) for driver, plan in zip(unrestricted_drivers, plans) if driver.is_available(plan)]                                               
+                # TODO: Check if the drivers want to give up this call
+
                 if len(available_drivers_and_plans) > 0:
                     # Select the drivers according to auction algorithm
                     winner_driver, winner_plan, winner_payment = self._choose_bid(available_drivers_and_plans)
@@ -41,7 +41,7 @@ class TaxiCoordinator(object):
                     # Increase the coordinator's payoff
                     self._deal_call(customer_call)
                     has_call_taken = True
-            if (has_call_taken):
+            if has_call_taken:
                 print('Accept {}'.format(customer_call))
 
     def _init_drivers(self, drivers_schedule):

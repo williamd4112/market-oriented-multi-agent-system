@@ -1,6 +1,7 @@
 import logging
 import os
 from simulator.city import City
+from simulator.customer_call import CustomerCall
 from auction.taxi_coordinator import TaxiCoordinator
 
 FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -25,11 +26,11 @@ if __name__ == '__main__':
                 auction_type='first-price', 
                 drivers_schedule=[  #[(0, 12)],
                                     #[(0, 12)],
-                                    [10, 24]],
+                                    [(10, 24)]],
                 init_pos=(4, 8))
     print(coordinator.drivers)
-    while city.time_sys.hour_in_sim() < 24:
-        customer_calls = city.step() 
-        coordinator.allocate(customer_calls)
+    customer_calls = [CustomerCall((0,0), (7, 14), 9.5),
+                      CustomerCall((3, 2), (2, 2), 1)]
+    coordinator.allocate(customer_calls)
     #coordinator.drivers[0].timeline.dump_json(os.path.join('data', 'driver_0.json'))
     

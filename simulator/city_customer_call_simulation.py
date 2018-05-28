@@ -35,7 +35,7 @@ class CityCustomerCallSimulation(object):
                 raise Exception('Error: travelling distance must be larger than zero, distance = %f' % (travelling_distance))
             possible_destinations = self.city_graph.get_poses_on_distance(start_node_idx, travelling_distance)
             sampled_destination = random.choice(possible_destinations)            
-            customer_call = CustomerCall(intersection, sampled_destination, travelling_distance, time)
+            customer_call = CustomerCall(intersection, sampled_destination, time)
             customer_calls.append(customer_call)
             accumulated_time += next_call_elapsed_time
             

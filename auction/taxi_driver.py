@@ -54,11 +54,20 @@ class TaxiDriver(object):
 
     def is_available(self, plan):
         '''
-        Check availability of this driver
+        Check availability of this driver based on timeline.
         '''
         event = TimeLineEvent(plan.start_time, plan.end_time, 'Call')
-        valid = self.timeline.is_valid(event) 
-        #print('Event', event, 'Valid', valid)
+        # Check overlap
+        valid = self.timeline.is_valid(event)
+        # Check return trip
+        after_event = self.timeline.get_after_event(event.start_time)
+        if after_event is not None:
+            if after_event.event_name == 'Shift':
+                dest = plan.end_pos
+                distance_to_origin, _ = self.city_graph.get_pos_shortest_distance(dest, self.init_pos)
+                time_period_to_origin = distance_to_origin / VELOCITY
+                time_arrived_origin = plan.end_time + time_period_to_origin
+                valid = (time_arrived_origin <= after_event.start_time)                
         return valid
        
     def assign(self, plan):
@@ -88,11 +97,13 @@ class TaxiDriver(object):
         else:
             latest_plan = self._get_latest_plan()
             start_time = latest_plan.end_time
-            start_pos = latest_plan.end_pos     
+            start_pos = latest_plan.end_pos      
+       
         end_pos = call.destination_pos
 
         distance_to_customer, route_to_customer = self.city_graph.get_pos_shortest_distance(start_pos, end_pos)
-        distance_to_dest = call.distance
+        distance_to_dest, route_to_dest = self.city_graph.get_pos_shortest_distance(call.start_pos, call.destination_pos)
+        route = route_to_customer + route_to_dest
 
         driving_time = self._compute_driving_time(distance_to_customer, distance_to_dest)
         end_time = start_time + driving_time
@@ -103,7 +114,7 @@ class TaxiDriver(object):
                 pickup_distance=distance_to_customer,
                 requested_distance=distance_to_dest,
                 bid=bid,
-                route=route_to_customer)
+                route=route)
 
         return plan
 

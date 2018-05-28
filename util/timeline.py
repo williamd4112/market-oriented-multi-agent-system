@@ -58,6 +58,18 @@ class TimeLine(object):
                     return False
             return True
 
+    def get_event(self, time):
+        for e in self.events:
+            if time >= e.start_time and time <= e.end_time:
+                return e
+        return None
+
+    def get_after_event(self, time):
+        for e in self.events:
+            if e.start_time > time:
+                return e
+        return None
+
     def __repr__(self):
         event_reprs = []
         for e in self.events:
