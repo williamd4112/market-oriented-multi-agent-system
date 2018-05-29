@@ -36,7 +36,7 @@ class TaxiCoordinator(object):
                     winner_driver, winner_plan, winner_payment = self._choose_bid(available_drivers_and_plans)
                     
                     # Assign the customer call to the winner
-                    winner_driver.assign(winner_plan)
+                    winner_driver.assign(winner_plan, winner_payment)
                     
                     # Increase the coordinator's payoff
                     self._deal_call(customer_call)
@@ -71,17 +71,36 @@ class TaxiCoordinator(object):
     def _choose_bid(self, drivers_and_plans):
         '''
         Select a driver according to its bidding price in the plan.
-        Return a winner driver and a winner payment
+        Return a winner driver and a winner payment:
+            winning_payment = 30% * (charge_rate_per_kilometer - gas_cost_per_kilometer)* requested_distance – {lowest bidding-price or second lowest bidding price}
         '''
         assert len(drivers_and_plans) > 0
         if len(drivers_and_plans) == 1:
             return drivers_and_plans[0][0], drivers_and_plans[0][1], drivers_and_plans[0][1].bid
         sorted_drivers_and_plans = sorted(drivers_and_plans, key=lambda dp: dp[1].bid)
-        if self.auction_type == 'first-price':
-            return sorted_drivers_and_plans[0][0], sorted_drivers_and_plans[0][1], sorted_drivers_and_plans[0][1].bid
-        elif self.auction_type == 'second-price':
-            return sorted_drivers_and_plans[0][0], sorted_drivers_and_plans[0][1], sorted_drivers_and_plans[1][1].bid               
+        
+        # TODO: Remove when done
+        for driver_plan in sorted_drivers_and_plans:
+            print('Driver-{} bid {}'.format(driver_plan[0].idx, driver_plan[1].bid))
+        
+        payment_ratio = 0.3
+        charge_rate_per_kilometer = 60
+        gas_cost_per_kilometer = 4
+        
+        driver = sorted_drivers_and_plans[0][0]
+        plan = sorted_drivers_and_plans[0][1]
 
+        if self.auction_type == 'first-price':
+            bid = sorted_drivers_and_plans[0][1].bid
+            payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * plan.requested_distance - bid
+            return driver, plan, payment
+        elif self.auction_type == 'second-price':
+            bid = sorted_drivers_and_plans[1][1].bid
+            payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * plan.requested_distance - bid
+            return driver, plan, payment
+        else:
+            raise Exception('error: invalid auction_type.')
+     
     def _deal_call(self, plan):
         '''
         Increase the coordinator's payoff with this plan.

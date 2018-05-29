@@ -29,9 +29,10 @@ class Plan(object):
                                                                         self.bid)
 
 class TaxiDriver(object):
-    def __init__(self, idx, init_pos, city_graph):
+    def __init__(self, idx, init_pos, city_graph, bidding_strategy='truthful'):
         self.idx = idx
         self.payoff = 0
+        self.bidding_strategy = bidding_strategy
         self.init_pos = init_pos
         self.city_graph = city_graph
         self.timeline = TimeLine()
@@ -72,7 +73,7 @@ class TaxiDriver(object):
                 valid = (time_arrived_origin <= after_event.start_time)                
         return valid
        
-    def assign(self, plan):
+    def assign(self, plan, payment_to_the_auction):
         '''
         Assign a plan for a driver. This call will be added to driver's schedule. The driver's payoff will be increased.
         '''    
@@ -80,14 +81,7 @@ class TaxiDriver(object):
         self.timeline.add_event(event)
         self.plans.add(plan)
         
-        # TODO: Compute payoff
-        # chargeable_distance * (charge_rate_per_kilometer) - total_traveling_distance * gas-cost-per-kilometer – payment_to_the_auction.
-        chargeable_distance = plan.requested_distance
-        charge_rate_per_kilometer = 60
-        total_traveling_distance = (plan.pickup_distance + plan.requested_distance)
-        gas_cost_per_kilometer = 4
-        payment_to_the_auction = plan.bid
-        plan_payoff = chargeable_distance * (charge_rate_per_kilometer) - total_traveling_distance * gas_cost_per_kilometer - payment_to_the_auction
+        plan_payoff = self._compute_payoff(distance_to_customer=plan.pickup_distance, distance_to_dest=plan.requested_distance, payment_to_the_auction=payment_to_the_auction)
 
         print('Driver-{} takes {}, payoff {}'.format(self.idx, plan, plan_payoff))
 
@@ -185,8 +179,35 @@ class TaxiDriver(object):
         '''
         Retrieve the bidding price.
         '''
-        # TODO: Return bidding price with bidding strategy
-        return 1
-    
+        if self.bidding_strategy == 'truthful':
+            # truthful bidding
+            bid = self._compute_value(distance_to_customer, distance_to_dest)
+        elif self.bidding_strategy == 'lookahead':
+            # TODO: Implement lookahead bidding
+            raise NotImplemented()
+        elif self.bidding_strategy == 'bayesian':
+            # TODO: Implement bayesian strategy
+            raise NotImplemented()
+        return bid
+
+    def _compute_value(self, distance_to_customer, distance_to_dest):
+        '''
+        Retrieve the true value of plan
+        '''
+        profit_ratio = 0.7
+        chargeable_distance = distance_to_dest
+        charge_rate_per_kilometer = 60
+        total_traveling_distance = (distance_to_customer + distance_to_dest)
+        gas_cost_per_kilometer = 4
+        return profit_ratio * chargeable_distance * (charge_rate_per_kilometer) - total_traveling_distance * gas_cost_per_kilometer
+
+    def _compute_payoff(self, distance_to_customer, distance_to_dest, payment_to_the_auction):
+        '''
+        Retrieve the driver payoff = 
+            chargeable_distance * (charge_rate_per_kilometer) - total_traveling_distance * gas-cost-per-kilometer – payment_to_the_auction.
+        '''   
+        value = self._compute_value(distance_to_customer, distance_to_dest)
+        return value - payment_to_the_auction
+ 
     def __repr__(self):
         return 'Driver({})'.format(str(self.timeline))
