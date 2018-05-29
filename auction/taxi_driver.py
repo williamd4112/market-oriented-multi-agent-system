@@ -81,7 +81,15 @@ class TaxiDriver(object):
         self.plans.add(plan)
         
         # TODO: Compute payoff
-        print('Driver-{} takes {}'.format(self.idx, plan))
+        # chargeable_distance * (charge_rate_per_kilometer) - total_traveling_distance * gas-cost-per-kilometer – payment_to_the_auction.
+        chargeable_distance = plan.requested_distance
+        charge_rate_per_kilometer = 60
+        total_traveling_distance = (plan.pickup_distance + plan.requested_distance)
+        gas_cost_per_kilometer = 4
+        payment_to_the_auction = plan.bid
+        plan_payoff = chargeable_distance * (charge_rate_per_kilometer) - total_traveling_distance * gas_cost_per_kilometer - payment_to_the_auction
+
+        print('Driver-{} takes {}, payoff {}'.format(self.idx, plan, plan_payoff))
 
     def generate_plan(self, call):
         '''
@@ -98,7 +106,6 @@ class TaxiDriver(object):
         prev_e = None
         for e in self.timeline.events:
             if e.end_time <= timelimit:               
-                print(prev_e, e)            
                 if e.event_name == 'Call':
                     if prev_e is not None:
                         timeline_copy.add_event(TimeLineEvent(prev_e.end_time, e.start_time, 'Free'))
