@@ -29,6 +29,9 @@ class TimeLineEvent(object):
     def __jsonencode__(self):
         return self.__dict__
 
+    def __repr__(self):
+        return 'TimeLineEvent({}-{})'.format(self.start_time, self.end_time)
+
 class TimeLineEventJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, TimeLineEvent):
@@ -67,6 +70,12 @@ class TimeLine(object):
     def get_after_event(self, time):
         for e in self.events:
             if e.start_time > time:
+                return e
+        return None
+
+    def get_before_event(self, time):
+        for e in reversed(self.events):
+            if e.start_time < time and e.end_time < time:
                 return e
         return None
 

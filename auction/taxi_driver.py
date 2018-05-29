@@ -1,4 +1,5 @@
 import logging
+import copy
 import numpy as np
 
 from sortedcontainers import SortedList
@@ -8,10 +9,11 @@ from util.timeline import TimeLine, TimeLineEvent
 VELOCITY = 30
 
 class Plan(object):
-    def __init__(self, start_time, end_time, start_pos, end_pos, pickup_distance, requested_distance, bid=0, route=None):
+    def __init__(self, start_time, end_time, start_pos, pickup_pos, end_pos, pickup_distance, requested_distance, bid=0, route=None):
         self.start_time = start_time
         self.end_time = end_time
         self.start_pos = start_pos
+        self.pickup_pos = pickup_pos
         self.end_pos = end_pos
         self.pickup_distance = pickup_distance
         self.requested_distance = requested_distance
@@ -19,9 +21,9 @@ class Plan(object):
         self.route = route
 
     def __repr__(self):
-        return 'Plan(Time({} - {}), Required time: {}, Pos({}, {}), Pic Distance: {}, Req Distance:{}, Bid:{})'.format(self.start_time, self.end_time,
+        return 'Plan(Time({}-{}), Required time: {}, Pos({},{},{}), Pic Distance: {}, Req Distance:{}, Bid:{})'.format(self.start_time, self.end_time,
                                                                         (self.end_time - self.start_time),
-                                                                        self.start_pos, self.end_pos,
+                                                                        self.start_pos, self.pickup_pos, self.end_pos,
                                                                         self.pickup_distance,
                                                                         self.requested_distance,
                                                                         self.bid)
@@ -86,19 +88,43 @@ class TaxiDriver(object):
         Generate a plan by call.
         '''
         return self._make_plan(call)
-    
+
+    def get_schedule(self):
+        '''
+        Fill the gap in the timeline with Free, Return, return a timeline object for visualization
+        '''
+        timeline_copy = copy.deepcopy(self.timeline)
+        prev_e = None
+        for e in self.timeline.events:
+            print(prev_e, e)            
+            if e.event_name == 'Call':
+                if prev_e is not None:
+                    timeline_copy.add_event(TimeLineEvent(prev_e.end_time, e.start_time, 'Free'))
+            if e.event_name == 'Shift':
+                # TODO: Compute return
+                if prev_e is not None and prev_e.event_name == 'Call':                                                            
+                    pass                
+          
+            prev_e = e
+        return timeline_copy
+ 
     def _make_plan(self, call):
+        before_event = self.timeline.get_before_event(call.time)
 
         # if no plan: start from init_pos and start from calling time
         if len(self.plans) == 0:
             start_time = call.time
             start_pos = self.init_pos
+        # if before event is Shift: start from init_pos
+        elif before_event is not None and before_event.event_name == 'Shift':
+            start_time = call.time
+            start_pos = self.init_pos
         # otherwise: start from latest_plan's end pos and start from latest_plan's end time
         else:
             latest_plan = self._get_latest_plan()
-            start_time = latest_plan.end_time
+            start_time = latest_plan.end_time if latest_plan.end_time > call.time else call.time
             start_pos = latest_plan.end_pos      
-       
+        pickup_pos = call.start_pos
         end_pos = call.destination_pos
 
         distance_to_customer, route_to_customer = self.city_graph.get_pos_shortest_distance(start_pos, end_pos)
@@ -110,7 +136,7 @@ class TaxiDriver(object):
         
         bid = self._compute_bidding_price(distance_to_customer, distance_to_dest)
 
-        plan = Plan(start_time, end_time, start_pos, end_pos,
+        plan = Plan(start_time, end_time, start_pos, pickup_pos, end_pos,
                 pickup_distance=distance_to_customer,
                 requested_distance=distance_to_dest,
                 bid=bid,

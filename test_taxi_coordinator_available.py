@@ -25,11 +25,11 @@ if __name__ == '__main__':
     coordinator = TaxiCoordinator(city=city, 
                 auction_type='first-price', 
                 drivers_schedule=[  #[(0, 12)],
-                                    #[(0, 12)],
+                                    [],
                                     [(10, 24)]],
                 init_pos=(4, 8))
     print(coordinator.drivers)
-    customer_calls = [CustomerCall((0,0), (7, 14), 9.5),
+    customer_calls = [CustomerCall((0, 0), (7, 14), 9.5),
                       CustomerCall((3, 2), (2, 2), 1)]
     coordinator.allocate(customer_calls)
     #coordinator.drivers[0].timeline.dump_json(os.path.join('data', 'driver_0.json'))
