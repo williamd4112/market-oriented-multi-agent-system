@@ -50,6 +50,9 @@ def test_start_from_shift():
                         CustomerCall((5, 6), (5, 8), 2),
                         CustomerCall((4, 7), (4, 12), 11)]
     coordinator.allocate(customer_calls)
-    print(coordinator.drivers[0].get_schedule())   
+    schedule = coordinator.drivers[0].generate_complete_schedule(16)
+    print('Schedule')
+    for e in schedule.events:
+        print(e)
 
 test_start_from_shift()

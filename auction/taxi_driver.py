@@ -89,23 +89,39 @@ class TaxiDriver(object):
         '''
         return self._make_plan(call)
 
-    def get_schedule(self):
+    def generate_complete_schedule(self, timelimit):
         '''
+        For visualization:
         Fill the gap in the timeline with Free, Return, return a timeline object for visualization
         '''
         timeline_copy = copy.deepcopy(self.timeline)
         prev_e = None
         for e in self.timeline.events:
-            print(prev_e, e)            
-            if e.event_name == 'Call':
-                if prev_e is not None:
-                    timeline_copy.add_event(TimeLineEvent(prev_e.end_time, e.start_time, 'Free'))
-            if e.event_name == 'Shift':
-                # TODO: Compute return
-                if prev_e is not None and prev_e.event_name == 'Call':                                                            
-                    pass                
-          
+            if e.end_time <= timelimit:               
+                print(prev_e, e)            
+                if e.event_name == 'Call':
+                    if prev_e is not None:
+                        timeline_copy.add_event(TimeLineEvent(prev_e.end_time, e.start_time, 'Free'))
+                if e.event_name == 'Shift':
+                    if prev_e is not None and prev_e.event_name == 'Call':
+                        # Compute time for return trip    
+                        end_pos = prev_e.route[-1]
+                        distance_end_pos_to_origin, route_end_pos_to_origin = self.city_graph.get_pos_shortest_distance(end_pos, self.init_pos)
+                        time_period_end_pos_to_origin = distance_end_pos_to_origin / VELOCITY
+                        time_start_return = e.start_time - time_period_end_pos_to_origin
+                        # Verify return time is enough
+                        if time_start_return < prev_e.end_time:
+                            raise Exception('error: invalid event in the schedule')
+                        # Add to timeline
+                        timeline_copy.add_event(TimeLineEvent(time_start_return, e.start_time, 'Return', route_end_pos_to_origin))
+
+                        # Fill the gap between call and return
+                        if time_start_return > prev_e.end_time:
+                            timeline_copy.add_event(TimeLineEvent(prev_e.end_time, time_start_return, 'Free'))
             prev_e = e
+        # Fill the gap with free
+        if prev_e is not None and prev_e.end_time < timelimit:
+            timeline_copy.add_event(TimeLineEvent(prev_e.end_time, timelimit, 'Free'))
         return timeline_copy
  
     def _make_plan(self, call):

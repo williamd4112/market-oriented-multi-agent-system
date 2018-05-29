@@ -30,7 +30,10 @@ class TimeLineEvent(object):
         return self.__dict__
 
     def __repr__(self):
-        return 'TimeLineEvent({}-{})'.format(self.start_time, self.end_time)
+        if self.route is None:
+            return 'TimeLineEvent({}: {}-{})'.format(self.event_name, self.start_time, self.end_time)
+        else:
+            return 'TimeLineEvent({}: {}-{}: {})'.format(self.event_name, self.start_time, self.end_time, self.route)
 
 class TimeLineEventJSONEncoder(json.JSONEncoder):
     def default(self, obj):
