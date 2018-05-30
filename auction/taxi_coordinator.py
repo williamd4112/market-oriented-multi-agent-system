@@ -21,6 +21,8 @@ class TaxiCoordinator(object):
         self.init_pos = init_pos
         self.drivers = self._init_drivers(drivers_schedule)
         self.current_payoff = 0
+        self.history_payoff = []
+        self.prev_time = 0
 
     def get_payoff(self):
         '''
@@ -28,8 +30,14 @@ class TaxiCoordinator(object):
         '''
         return self.current_payoff
 
-    def allocate(self, customer_calls):    
+    def dump_history_payoff(self, path):
+        np.save(path, np.asarray(self.history_payoff))
+
+    def allocate(self, customer_calls):        
         for customer_call in customer_calls:
+            if self.prev_time > customer_call.time:            
+                raise Exception('error: customer_calls must be sorted. ({} > {})'.format(self.prev_time, customer_call.time))
+            self.prev_time = max(customer_call.time, self.prev_time)
             has_call_taken = False
             # Find all unrestricted drivers, if there is no unrestricted drivers, drop this call
             unrestricted_drivers = self._get_unrestricted_drivers(customer_call)
@@ -50,6 +58,7 @@ class TaxiCoordinator(object):
                     
                     # Increase the coordinator's payoff
                     self._accumulate_payoff(winner_payment)
+                    self.history_payoff.append(winner_payment)
                     has_call_taken = True
             if has_call_taken:
                 logging.info('Accept {}'.format(customer_call))

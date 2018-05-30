@@ -36,10 +36,9 @@ class CityCustomerCallSimulation(object):
             possible_destinations = self.city_graph.get_poses_on_distance(start_node_idx, travelling_distance)
             sampled_destination = random.choice(possible_destinations)            
             customer_call = CustomerCall(intersection, sampled_destination, time)
-            customer_calls.append(customer_call)
-            accumulated_time += next_call_elapsed_time
-            
+            accumulated_time += next_call_elapsed_time            
             if accumulated_time >= 1:
-                break
+                break           
+            customer_calls.append(customer_call)
         return customer_calls
 
