@@ -155,7 +155,7 @@ class TaxiDriver(object):
         pickup_pos = call.start_pos
         end_pos = call.destination_pos
 
-        distance_to_customer, route_to_customer = self.city_graph.get_pos_shortest_distance(start_pos, end_pos)
+        distance_to_customer, route_to_customer = self.city_graph.get_pos_shortest_distance(start_pos, pickup_pos)
         distance_to_dest, route_to_dest = self.city_graph.get_pos_shortest_distance(call.start_pos, call.destination_pos)
         route = route_to_customer + route_to_dest
 
