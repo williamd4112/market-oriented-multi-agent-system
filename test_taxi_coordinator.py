@@ -111,5 +111,5 @@ def test_dump_json():
     schedule.dump_json(os.path.join('data', 'driver_0.json'))
 
 #test_payoff_bidding()
-test_start_from_shift()
-#test_dump_json()
+#test_start_from_shift()
+test_dump_json()
