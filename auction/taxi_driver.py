@@ -91,7 +91,7 @@ class TaxiDriver(object):
         '''
         return self._make_plan(call)
 
-    def generate_complete_schedule(self, timelimit):
+    def generate_complete_schedule(self, timelimit, use_relative_coordinate=False):
         '''
         For visualization:
         Fill the gap in the timeline with Free, Return, return a timeline object for visualization
@@ -123,6 +123,17 @@ class TaxiDriver(object):
         # Fill the gap with free
         if prev_e is not None and prev_e.end_time < timelimit:
             timeline_copy.add_event(TimeLineEvent(prev_e.end_time, timelimit, 'Free'))
+
+        # Tranform to relative coordinates
+        if use_relative_coordinate:
+            for e in timeline_copy.events:
+                if e.event_name == 'Call' or e.event_name == 'Return':
+                    orig_pos = e.route[0]
+                    new_route = []
+                    for idx, p in enumerate(e.route):
+                        new_route.append((p[0] - orig_pos[0], p[1] - orig_pos[1]))
+                        orig_pos = p
+                    e.route = new_route
         return timeline_copy
  
     def _make_plan(self, call):
