@@ -12,6 +12,8 @@ def daily_schedules_to_weekly_schedules(daily_schedule_for_drivers):
     Pass the daily schedules, convert to weekly schedule for each drivers.
     '''
     weekly_schedules_for_drivers = []
+
+    print(daily_schedule_for_drivers)
     for daily_schedule_for_driver in daily_schedule_for_drivers:
         weekly_schedules_for_driver = []
         for start_time, end_time in daily_schedule_for_driver:

@@ -6,7 +6,6 @@ from sortedcontainers import SortedList
 
 from util.timeline import TimeLine, TimeLineEvent
 
-VELOCITY = 30
 
 class Plan(object):
     def __init__(self, start_time, end_time, start_pos, pickup_pos, end_pos, pickup_distance, requested_distance, bid=0, route=None):
@@ -29,8 +28,12 @@ class Plan(object):
                                                                         self.bid)
 
 class TaxiDriver(object):
-    def __init__(self, idx, init_pos, city_graph, bidding_strategy='truthful'):
+    def __init__(self, idx, init_pos, city_graph, bidding_strategy='truthful', 
+            charge_rate_per_kilometer=60, gas_cost_per_kilometer=4, driving_velocity=30):
         self.idx = idx
+        self.charge_rate_per_kilometer = charge_rate_per_kilometer
+        self.gas_cost_per_kilometer = gas_cost_per_kilometer
+        self.driving_velocity = driving_velocity
         self.current_payoff = 0
         self.bidding_strategy = bidding_strategy
         self.init_pos = init_pos
@@ -51,7 +54,7 @@ class TaxiDriver(object):
             return False
 
         # Compute restricted time period
-        restricted_hrs = plan.requested_distance / VELOCITY
+        restricted_hrs = plan.requested_distance / self.driving_velocity
         # Compute forbidden time
         latest_start_time = plan.start_time
         forbidden_time = latest_start_time + restricted_hrs
@@ -71,7 +74,7 @@ class TaxiDriver(object):
             if after_event.event_name == 'Shift':
                 dest = plan.end_pos
                 distance_to_origin, _ = self.city_graph.get_pos_shortest_distance(dest, self.init_pos)
-                time_period_to_origin = distance_to_origin / VELOCITY
+                time_period_to_origin = distance_to_origin / self.driving_velocity
                 time_arrived_origin = plan.end_time + time_period_to_origin
                 valid = (time_arrived_origin <= after_event.start_time)                
         return valid
@@ -86,7 +89,7 @@ class TaxiDriver(object):
         
         plan_payoff = self._compute_payoff(distance_to_customer=plan.pickup_distance, distance_to_dest=plan.requested_distance, payment_to_the_auction=payment_to_the_auction)
         self.current_payoff += plan_payoff
-        print('Driver-{} takes {}, payoff {}'.format(self.idx, plan, plan_payoff))
+        logging.info('Driver-{} takes {}, payoff {}'.format(self.idx, plan, plan_payoff))
 
     def generate_plan(self, call):
         '''
@@ -111,7 +114,7 @@ class TaxiDriver(object):
                         # Compute time for return trip    
                         end_pos = prev_e.route[-1]
                         distance_end_pos_to_origin, route_end_pos_to_origin = self.city_graph.get_pos_shortest_distance(end_pos, self.init_pos)
-                        time_period_end_pos_to_origin = distance_end_pos_to_origin / VELOCITY
+                        time_period_end_pos_to_origin = distance_end_pos_to_origin / self.driving_velocity
                         time_start_return = e.start_time - time_period_end_pos_to_origin
                         # Verify return time is enough
                         if time_start_return < prev_e.end_time:
@@ -187,7 +190,7 @@ class TaxiDriver(object):
         '''
         Retrive the required driving time from driver pos to customer's pos and customer's pos to dest
         '''
-        return (distance_to_customer + distance_to_dest) / VELOCITY
+        return (distance_to_customer + distance_to_dest) / self.driving_velocity
 
     def _compute_bidding_price(self, distance_to_customer, distance_to_dest):
         '''
@@ -209,9 +212,9 @@ class TaxiDriver(object):
         Retrieve the true value of plan
         '''
         chargeable_distance = distance_to_dest
-        charge_rate_per_kilometer = 60
+        charge_rate_per_kilometer = self.charge_rate_per_kilometer
         total_traveling_distance = (distance_to_customer + distance_to_dest)
-        gas_cost_per_kilometer = 4
+        gas_cost_per_kilometer = self.gas_cost_per_kilometer
         return chargeable_distance * (charge_rate_per_kilometer) - total_traveling_distance * gas_cost_per_kilometer
 
     def _compute_payoff(self, distance_to_customer, distance_to_dest, payment_to_the_auction):

@@ -1,16 +1,21 @@
+import logging
 import numpy as np
 
 from auction.taxi_driver import TaxiDriver
 from util.timeline import TimeLineEvent
 
 class TaxiCoordinator(object):
-    def __init__(self, city, auction_type, drivers_schedule, init_pos):
+    def __init__(self, city, auction_type, drivers_schedule, init_pos,
+                    payment_ratio=0.3, charge_rate_per_kilometer=60, gas_cost_per_kilometer=4):
         '''
         city: where the taxi coordinator works on
         auction_type: auction mechanism
         drivers_schedule: determine how many drivers in a period.
         init_pos: initial pos of all drivers
         '''
+        self.payment_ratio = payment_ratio
+        self.charge_rate_per_kilometer = charge_rate_per_kilometer
+        self.gas_cost_per_kilometer = gas_cost_per_kilometer
         self.city = city 
         self.auction_type = auction_type
         self.init_pos = init_pos
@@ -48,7 +53,7 @@ class TaxiCoordinator(object):
                     self._accumulate_payoff(winner_payment)
                     has_call_taken = True
             if has_call_taken:
-                print('Accept {}'.format(customer_call))
+                logging.info('Accept {}'.format(customer_call))
 
     def _init_drivers(self, drivers_schedule):
         '''
@@ -85,9 +90,9 @@ class TaxiCoordinator(object):
             return drivers_and_plans[0][0], drivers_and_plans[0][1], drivers_and_plans[0][1].bid
         sorted_drivers_and_plans = sorted(drivers_and_plans, key=lambda dp: dp[1].bid)
                
-        payment_ratio = 0.3
-        charge_rate_per_kilometer = 60
-        gas_cost_per_kilometer = 4
+        payment_ratio = self.payment_ratio
+        charge_rate_per_kilometer = self.charge_rate_per_kilometer
+        gas_cost_per_kilometer = self.gas_cost_per_kilometer
         
         driver = sorted_drivers_and_plans[0][0]
         plan = sorted_drivers_and_plans[0][1]
