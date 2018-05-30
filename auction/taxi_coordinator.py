@@ -118,7 +118,6 @@ class TaxiCoordinator(object):
             bid = sorted_drivers_and_plans[1][1].bid
         else:
             raise Exception('error: invalid auction_type.')
-        # TODO: I think '+' is more correct than '-' in bid?
         payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * plan.requested_distance - bid
         return driver, plan, payment
      

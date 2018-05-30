@@ -21,10 +21,12 @@ class Plan(object):
         self.route = route
 
     def __repr__(self):
-        return 'Plan(Time({}-{}), Waiting time: {}, Required time: {}, Pos({},{},{}), Pic Distance: {}, Req Distance:{}, Bid:{})'.format(self.start_time, self.end_time,
+        return 'Plan(Time({:.2f} - {:.2f}), Waiting time: {:.2f}, Required time: {:.2f}, Pos(({:.2f}, {:.2f}), ({:.2f}, {:.2f}), ({:.2f}, {:.2f})), Pic Distance: {:.2f}, Req Distance:{:.2f}, Bid:{:.2f})'.format(self.start_time, self.end_time,
                                                                         (self.end_time - self.start_time),
                                                                         self.waiting_time_period,
-                                                                        self.start_pos, self.pickup_pos, self.end_pos,
+                                                                        self.start_pos[0], self.start_pos[1],
+                                                                        self.pickup_pos[0], self.pickup_pos[1],
+                                                                        self.end_pos[0], self.end_pos[1],
                                                                         self.pickup_distance,
                                                                         self.requested_distance,
                                                                         self.bid)
@@ -94,7 +96,7 @@ class TaxiDriver(object):
         
         plan_payoff = self._compute_payoff(distance_to_customer=plan.pickup_distance, distance_to_dest=plan.requested_distance, payment_to_the_auction=payment_to_the_auction)
         self.current_payoff += plan_payoff
-        logging.debug('Driver-{} takes {}, payoff {}'.format(self.idx, plan, plan_payoff))
+        logging.debug('Driver-{} takes {}, payoff {:.2f}'.format(self.idx, plan, plan_payoff))
 
     def generate_plan(self, call):
         '''

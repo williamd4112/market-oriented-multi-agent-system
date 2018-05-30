@@ -6,4 +6,5 @@ class CustomerCall(object):
         self.time = time
 
     def __repr__(self):
-        return 'CustomerCall(time:{}, start_pos:{}, dest_pos:{})'.format(self.time, self.start_pos, self.destination_pos)
+        return 'CustomerCall(time:{:.3f}, start_pos:({:.2f}, {:.2f}), dest_pos:({:.2f}, {:.2f}))'.format(self.time, self.start_pos[0], self.start_pos[1], 
+                                                                                self.destination_pos[0], self.destination_pos[1])

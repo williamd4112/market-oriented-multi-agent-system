@@ -9,7 +9,8 @@ from auction.taxi_coordinator import TaxiCoordinator
 
 from config import Config
 
-FORMAT = '[%(asctime)s %(pathname)s:%(lineno)d] %(levelname)s: %(message)s'
+FORMAT = '[%(asctime)s %(filename)s:%(lineno)d] %(levelname)s: %(message)s'
+SHIFTS = ['3AM-1PM', '9AM-7PM', '6PM-4AM']
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -49,11 +50,12 @@ if __name__ == '__main__':
         events = driver.timeline.generate_complete_schedule(args.timelimit, True)
         for e in events:
             if e.event_name == 'Return':
-        '''     
-        logging.info('Driver-{} payoff {}, average customer waiting time {}'.format(driver.idx, driver.get_payoff(), driver.get_waiting_time_periods().mean()))
+        '''
+        shift = SHIFTS[int(driver.idx // 4)]
+        logging.info('Shift {} Driver-{} payoff {:.2f}, average customer waiting time period {:.2f} hours'.format(shift, driver.idx, driver.get_payoff(), driver.get_waiting_time_periods().mean()))
         if args.dump:
             driver.timeline.dump_json(os.path.join('data', 'driver-%03d.json' % (driver.idx)))
-    logging.info('Company payoff: {}'.format(coordinator.get_payoff()))
+    logging.info('Company payoff: {:.2f}'.format(coordinator.get_payoff()))
  
 
 
