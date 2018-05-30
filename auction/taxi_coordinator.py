@@ -29,7 +29,6 @@ class TaxiCoordinator(object):
         return self.current_payoff
 
     def allocate(self, customer_calls):    
-        # TODO: Consider look-ahead (consider multiple calls at a time)
         for customer_call in customer_calls:
             has_call_taken = False
             # Find all unrestricted drivers, if there is no unrestricted drivers, drop this call
@@ -104,7 +103,7 @@ class TaxiCoordinator(object):
         else:
             raise Exception('error: invalid auction_type.')
         # TODO: I think '+' is more correct than '-' in bid?
-        payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * plan.requested_distance -bid
+        payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * plan.requested_distance - bid
         return driver, plan, payment
      
     def _accumulate_payoff(self, payment):

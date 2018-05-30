@@ -202,9 +202,6 @@ class TaxiDriver(object):
         elif self.bidding_strategy == 'lookahead':
             # TODO: Implement lookahead bidding
             raise NotImplemented()
-        elif self.bidding_strategy == 'bayesian':
-            # TODO: Implement bayesian strategy
-            raise NotImplemented()
         return bid
 
     def _compute_value(self, distance_to_customer, distance_to_dest):

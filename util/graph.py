@@ -1,6 +1,6 @@
 import numpy as np
 
-INF = int(1e9)
+from util.defines import INF
 
 class Graph(object):
     def __init__(self, graph):

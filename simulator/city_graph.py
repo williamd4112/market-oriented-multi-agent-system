@@ -4,9 +4,7 @@ from collections import deque as Queue
 
 from util.graph import Graph
 from util.common import check_duplicated_element, movement_to_dir
-
-# TODO: Define in a common file
-INF = int(1e9)
+from util.defines import INF
 
 class CityGraph(Graph):
     DIRS =  [   (0, -1),# Left

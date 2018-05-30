@@ -10,8 +10,8 @@ class NormalDistribution(object):
         self.sigma = sigma
 
     def __call__(self):
-        # TODO: Change to Box-Muller in final version
-        # TODO: Handle negative distance
+        # NOTE: Change to Box-Muller in final version
+        # NOTE: Handle negative distance
         return np.clip(np.random.normal(self.mu, self.sigma), 0.5, 3.5)
 
 class PoissonProcess(object):
