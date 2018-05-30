@@ -1,6 +1,12 @@
 Multi-agent system for Taxi coordinator
 =
 
+TODO
+--
+- [] Lookahead bidding
+- [] Check the formula of payoff computation
+- [] Enable the driver to give up the call
+
 Requirements
 --
 - numpy>=1.14
