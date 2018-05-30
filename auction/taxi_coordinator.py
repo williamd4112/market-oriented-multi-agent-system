@@ -49,8 +49,6 @@ class TaxiCoordinator(object):
 
                 # Check the availability with drivers' timeline
                 available_drivers_and_plans = [(driver, plan) for driver, plan in zip(unrestricted_drivers, plans) if driver.is_available(plan) and plan.waiting_time_period < self.waiting_time_threshold]                 
-                # TODO: Check if the drivers want to give up this call
-
                 if len(available_drivers_and_plans) > 0:
                     # Select the drivers according to auction algorithm
                     winner_driver, winner_plan, winner_payment = self._choose_bid(available_drivers_and_plans)

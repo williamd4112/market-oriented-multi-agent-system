@@ -114,7 +114,7 @@ class TaxiDriver(object):
         for e in self.timeline.events:
             if e.end_time <= timelimit:               
                 if e.event_name == 'Call':
-                    if prev_e is not None:
+                    if prev_e is not None and prev_e.end_time < e.start_time:
                         timeline_copy.add_event(TimeLineEvent(prev_e.end_time, e.start_time, 'Free'))
                 if e.event_name == 'Shift':
                     if prev_e is not None and prev_e.event_name == 'Call':

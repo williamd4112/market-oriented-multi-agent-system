@@ -53,7 +53,7 @@ class TimeLine(object):
 
     def is_valid(self, e):
         if e.start_time >= e.end_time:
-            raise Exception('Error: start time > end_time.')
+            raise Exception('Error: start time >= end_time. {}'.format(e))
         if len(self.events) == 0:
             return True
         else:

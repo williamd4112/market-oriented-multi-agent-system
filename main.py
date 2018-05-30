@@ -7,6 +7,8 @@ from simulator.customer_call import CustomerCall
 
 from auction.taxi_coordinator import TaxiCoordinator
 
+from util.common import compute_route_distance
+
 from config import Config
 
 FORMAT = '[%(asctime)s %(filename)s:%(lineno)d] %(levelname)s: %(message)s'
@@ -45,14 +47,15 @@ if __name__ == '__main__':
         customer_calls = city.step()
         coordinator.allocate(customer_calls)
     coordinator.dump_history_payoff(os.path.join('data', 'company-history-payoff.npy'))
-    for driver in coordinator.drivers:
-        '''
-        events = driver.timeline.generate_complete_schedule(args.timelimit, True)
+    for driver in coordinator.drivers:        
+        events = driver.generate_complete_schedule(args.timelimit).events
+        distance_return = 0
         for e in events:
             if e.event_name == 'Return':
-        '''
+                distance_return += compute_route_distance(e.route)
+        cost_return = distance_return / config.gas_cost_per_kilometer
         shift = SHIFTS[int(driver.idx // 4)]
-        logging.info('Shift {} Driver-{} payoff {:.2f}, average customer waiting time period {:.2f} hours'.format(shift, driver.idx, driver.get_payoff(), driver.get_waiting_time_periods().mean()))
+        logging.info('Shift {} Driver-{} payoff {:.2f}, average customer waiting time period {:.2f} hours, return cost {:.2f}'.format(shift, driver.idx, driver.get_payoff() - cost_return, driver.get_waiting_time_periods().mean(), cost_return))
         if args.dump:
             driver.timeline.dump_json(os.path.join('data', 'driver-%03d.json' % (driver.idx)))
     logging.info('Company payoff: {:.2f}'.format(coordinator.get_payoff()))
