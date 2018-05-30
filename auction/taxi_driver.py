@@ -31,12 +31,15 @@ class Plan(object):
 class TaxiDriver(object):
     def __init__(self, idx, init_pos, city_graph, bidding_strategy='truthful'):
         self.idx = idx
-        self.payoff = 0
+        self.current_payoff = 0
         self.bidding_strategy = bidding_strategy
         self.init_pos = init_pos
         self.city_graph = city_graph
         self.timeline = TimeLine()
         self.plans = SortedList(key=lambda plan: plan.start_time)
+
+    def get_payoff(self):
+        return self.current_payoff
 
     def is_restricted(self, call):
         '''
@@ -82,7 +85,7 @@ class TaxiDriver(object):
         self.plans.add(plan)
         
         plan_payoff = self._compute_payoff(distance_to_customer=plan.pickup_distance, distance_to_dest=plan.requested_distance, payment_to_the_auction=payment_to_the_auction)
-
+        self.current_payoff += plan_payoff
         print('Driver-{} takes {}, payoff {}'.format(self.idx, plan, plan_payoff))
 
     def generate_plan(self, call):
@@ -205,12 +208,11 @@ class TaxiDriver(object):
         '''
         Retrieve the true value of plan
         '''
-        profit_ratio = 0.7
         chargeable_distance = distance_to_dest
         charge_rate_per_kilometer = 60
         total_traveling_distance = (distance_to_customer + distance_to_dest)
         gas_cost_per_kilometer = 4
-        return profit_ratio * chargeable_distance * (charge_rate_per_kilometer) - total_traveling_distance * gas_cost_per_kilometer
+        return chargeable_distance * (charge_rate_per_kilometer) - total_traveling_distance * gas_cost_per_kilometer
 
     def _compute_payoff(self, distance_to_customer, distance_to_dest, payment_to_the_auction):
         '''

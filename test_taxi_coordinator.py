@@ -1,5 +1,7 @@
 import logging
 import os
+import argparse
+
 from simulator.city import City
 from simulator.customer_call import CustomerCall
 from auction.taxi_coordinator import TaxiCoordinator
@@ -72,15 +74,12 @@ def test_payoff_bidding():
                                     [],
                                     []],
                 init_pos=(4, 8))
-    print(coordinator.drivers)
-    customer_calls = [  CustomerCall((4, 4), (5, 4), 1),
-                        CustomerCall((5, 6), (5, 8), 2),
-                        CustomerCall((4, 7), (4, 12), 11)]
-    coordinator.allocate(customer_calls)
-    schedule = coordinator.drivers[0].generate_complete_schedule(16)
-    print('Schedule')
-    for e in schedule.events:
-        print(e)
+    while city.time_sys.hour_in_sim() < 24*7:
+        customer_calls = city.step() 
+        coordinator.allocate(customer_calls)
+    for driver in coordinator.drivers:
+        print('Driver-{} payoff {}'.format(driver.idx, driver.get_payoff()))
+    print('Company payoff', coordinator.get_payoff())
 
 def test_dump_json():
     intersections = [ 
@@ -110,6 +109,14 @@ def test_dump_json():
         print(e)
     schedule.dump_json(os.path.join('data', 'driver_0.json'))
 
-#test_payoff_bidding()
-#test_start_from_shift()
-test_dump_json()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--case', type=str, required=True)
+    args = parser.parse_args()
+    
+    if args.case == 'payoff_bidding':
+        test_payoff_bidding()
+    elif args.case == 'shift':
+        test_start_from_shift()
+    elif args.case == 'dump_json':
+        test_dump_json()

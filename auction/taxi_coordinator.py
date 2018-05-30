@@ -17,6 +17,12 @@ class TaxiCoordinator(object):
         self.drivers = self._init_drivers(drivers_schedule)
         self.current_payoff = 0
 
+    def get_payoff(self):
+        '''
+        Retrieve the payoff (DO NOT DIRECTLY ACCESS CURRENT_PAYOFF. ACCESS CURRENT_PAYOFF WITH THIS FUNCTION.)
+        '''
+        return self.current_payoff
+
     def allocate(self, customer_calls):    
         # TODO: Consider look-ahead (consider multiple calls at a time)
         for customer_call in customer_calls:
@@ -39,7 +45,7 @@ class TaxiCoordinator(object):
                     winner_driver.assign(winner_plan, winner_payment)
                     
                     # Increase the coordinator's payoff
-                    self._deal_call(customer_call)
+                    self._accumulate_payoff(winner_payment)
                     has_call_taken = True
             if has_call_taken:
                 print('Accept {}'.format(customer_call))
@@ -78,11 +84,7 @@ class TaxiCoordinator(object):
         if len(drivers_and_plans) == 1:
             return drivers_and_plans[0][0], drivers_and_plans[0][1], drivers_and_plans[0][1].bid
         sorted_drivers_and_plans = sorted(drivers_and_plans, key=lambda dp: dp[1].bid)
-        
-        # TODO: Remove when done
-        for driver_plan in sorted_drivers_and_plans:
-            print('Driver-{} bid {}'.format(driver_plan[0].idx, driver_plan[1].bid))
-        
+               
         payment_ratio = 0.3
         charge_rate_per_kilometer = 60
         gas_cost_per_kilometer = 4
@@ -92,18 +94,16 @@ class TaxiCoordinator(object):
 
         if self.auction_type == 'first-price':
             bid = sorted_drivers_and_plans[0][1].bid
-            payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * plan.requested_distance - bid
-            return driver, plan, payment
         elif self.auction_type == 'second-price':
             bid = sorted_drivers_and_plans[1][1].bid
-            payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * plan.requested_distance - bid
-            return driver, plan, payment
         else:
             raise Exception('error: invalid auction_type.')
+        # TODO: I think '+' is more correct than '-' in bid?
+        payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * plan.requested_distance -bid
+        return driver, plan, payment
      
-    def _deal_call(self, plan):
+    def _accumulate_payoff(self, payment):
         '''
-        Increase the coordinator's payoff with this plan.
-        '''        
-        # TODO: Compute pay-off
-        self.current_payoff = 0 
+        Increase the coordinator's payoff with payment
+        '''
+        self.current_payoff += payment
