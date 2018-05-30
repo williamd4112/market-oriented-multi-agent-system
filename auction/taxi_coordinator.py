@@ -5,17 +5,19 @@ from auction.taxi_driver import TaxiDriver
 from util.timeline import TimeLineEvent
 
 class TaxiCoordinator(object):
-    def __init__(self, city, auction_type, drivers_schedule, init_pos,
-                    payment_ratio=0.3, charge_rate_per_kilometer=60, gas_cost_per_kilometer=4):
+    def __init__(self, city, auction_type, drivers_schedule, init_pos, driving_velocity=30,
+                    payment_ratio=0.3, charge_rate_per_kilometer=60, gas_cost_per_kilometer=4, waiting_time_threshold=15):
         '''
         city: where the taxi coordinator works on
         auction_type: auction mechanism
         drivers_schedule: determine how many drivers in a period.
         init_pos: initial pos of all drivers
         '''
+        self.driving_velocity = driving_velocity
         self.payment_ratio = payment_ratio
         self.charge_rate_per_kilometer = charge_rate_per_kilometer
         self.gas_cost_per_kilometer = gas_cost_per_kilometer
+        self.waiting_time_threshold = waiting_time_threshold
         self.city = city 
         self.auction_type = auction_type
         self.init_pos = init_pos
@@ -46,7 +48,7 @@ class TaxiCoordinator(object):
                 plans = [driver.generate_plan(customer_call) for driver in unrestricted_drivers]
 
                 # Check the availability with drivers' timeline
-                available_drivers_and_plans = [(driver, plan) for driver, plan in zip(unrestricted_drivers, plans) if driver.is_available(plan)]                                               
+                available_drivers_and_plans = [(driver, plan) for driver, plan in zip(unrestricted_drivers, plans) if driver.is_available(plan) and plan.waiting_time < self.waiting_time_threshold]                 
                 # TODO: Check if the drivers want to give up this call
 
                 if len(available_drivers_and_plans) > 0:
@@ -61,7 +63,9 @@ class TaxiCoordinator(object):
                     self.history_payoff.append(winner_payment)
                     has_call_taken = True
             if has_call_taken:
-                logging.info('Accept {}'.format(customer_call))
+                logging.debug('Accept {}'.format(customer_call))
+            else:                
+                logging.debug('Reject {}'.format(customer_call))
 
     def _init_drivers(self, drivers_schedule):
         '''
@@ -70,7 +74,10 @@ class TaxiCoordinator(object):
         '''        
         drivers = []
         for idx, schedule in enumerate(drivers_schedule):
-            driver = TaxiDriver(idx=idx, init_pos=self.init_pos, city_graph=self.city.city_graph)
+            driver = TaxiDriver(idx=idx, init_pos=self.init_pos, city_graph=self.city.city_graph,
+                            charge_rate_per_kilometer=self.charge_rate_per_kilometer,
+                            gas_cost_per_kilometer=self.gas_cost_per_kilometer,
+                            driving_velocity=self.driving_velocity)
             for event in schedule:
                 driver.timeline.add_event(TimeLineEvent(event[0], event[1], 'Shift')) 
             drivers.append(driver)

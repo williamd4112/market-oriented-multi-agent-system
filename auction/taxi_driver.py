@@ -8,20 +8,22 @@ from util.timeline import TimeLine, TimeLineEvent
 
 
 class Plan(object):
-    def __init__(self, start_time, end_time, start_pos, pickup_pos, end_pos, pickup_distance, requested_distance, bid=0, route=None):
+    def __init__(self, start_time, end_time, start_pos, pickup_pos, end_pos, waiting_time, pickup_distance, requested_distance, bid=0, route=None):
         self.start_time = start_time
         self.end_time = end_time
         self.start_pos = start_pos
         self.pickup_pos = pickup_pos
         self.end_pos = end_pos
+        self.waiting_time = waiting_time
         self.pickup_distance = pickup_distance
         self.requested_distance = requested_distance
         self.bid = bid
         self.route = route
 
     def __repr__(self):
-        return 'Plan(Time({}-{}), Required time: {}, Pos({},{},{}), Pic Distance: {}, Req Distance:{}, Bid:{})'.format(self.start_time, self.end_time,
+        return 'Plan(Time({}-{}), Waiting time: {}, Required time: {}, Pos({},{},{}), Pic Distance: {}, Req Distance:{}, Bid:{})'.format(self.start_time, self.end_time,
                                                                         (self.end_time - self.start_time),
+                                                                        self.waiting_time,
                                                                         self.start_pos, self.pickup_pos, self.end_pos,
                                                                         self.pickup_distance,
                                                                         self.requested_distance,
@@ -43,6 +45,9 @@ class TaxiDriver(object):
 
     def get_payoff(self):
         return self.current_payoff
+
+    def get_waiting_times(self):
+        return np.asarray([plan.waiting_time for plan in self.plans])
 
     def is_restricted(self, call):
         '''
@@ -89,7 +94,7 @@ class TaxiDriver(object):
         
         plan_payoff = self._compute_payoff(distance_to_customer=plan.pickup_distance, distance_to_dest=plan.requested_distance, payment_to_the_auction=payment_to_the_auction)
         self.current_payoff += plan_payoff
-        logging.info('Driver-{} takes {}, payoff {}'.format(self.idx, plan, plan_payoff))
+        logging.debug('Driver-{} takes {}, payoff {}'.format(self.idx, plan, plan_payoff))
 
     def generate_plan(self, call):
         '''
@@ -145,6 +150,7 @@ class TaxiDriver(object):
     def _make_plan(self, call):
         before_event = self.timeline.get_before_event(call.time)
 
+        # start_time = when to start to pickup + deliever the customer
         # if no plan: start from init_pos and start from calling time
         if len(self.plans) == 0:
             start_time = call.time
@@ -164,13 +170,21 @@ class TaxiDriver(object):
         distance_to_customer, route_to_customer = self.city_graph.get_pos_shortest_distance(start_pos, pickup_pos)
         distance_to_dest, route_to_dest = self.city_graph.get_pos_shortest_distance(call.start_pos, call.destination_pos)
         route = route_to_customer + route_to_dest
+        
+        pickup_time = self._compute_waiting_time(distance_to_customer)
 
+        # waiting_time = elapsed time from when call came to when the customer is pickuped
+        waiting_time = call.time + pickup_time
+
+        # driving_time = elapsed time from when the driver starts handling this call to when the customer arrived at the dest
         driving_time = self._compute_driving_time(distance_to_customer, distance_to_dest)
+
         end_time = start_time + driving_time
         
         bid = self._compute_bidding_price(distance_to_customer, distance_to_dest)
 
         plan = Plan(start_time, end_time, start_pos, pickup_pos, end_pos,
+                waiting_time=waiting_time,
                 pickup_distance=distance_to_customer,
                 requested_distance=distance_to_dest,
                 bid=bid,
@@ -185,6 +199,12 @@ class TaxiDriver(object):
         if len(self.plans) == 0: 
             return None
         return self.plans[-1]
+
+    def _compute_waiting_time(self, distance_to_customer):
+        '''
+        Retrive the waiting time for the customer
+        '''
+        return (distance_to_customer) / self.driving_velocity
 
     def _compute_driving_time(self, distance_to_customer, distance_to_dest):
         '''
