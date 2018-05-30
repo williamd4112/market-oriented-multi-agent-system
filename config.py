@@ -32,7 +32,7 @@ class Config(object):
         self.charge_rate_per_kilometer = 60
         self.gas_cost_per_kilometer = 4
         self.driving_velocity = 30
-        self.waiting_time_threshold = 12
+        self.waiting_time_threshold = (1./12.)
 
 
 

@@ -50,7 +50,7 @@ if __name__ == '__main__':
         for e in events:
             if e.event_name == 'Return':
         '''     
-        logging.info('Driver-{} payoff {}, average customer waiting time {}'.format(driver.idx, driver.get_payoff(), driver.get_waiting_times().mean()))
+        logging.info('Driver-{} payoff {}, average customer waiting time {}'.format(driver.idx, driver.get_payoff(), driver.get_waiting_time_periods().mean()))
         if args.dump:
             driver.timeline.dump_json(os.path.join('data', 'driver-%03d.json' % (driver.idx)))
     logging.info('Company payoff: {}'.format(coordinator.get_payoff()))

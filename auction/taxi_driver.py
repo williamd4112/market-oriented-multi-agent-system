@@ -8,13 +8,13 @@ from util.timeline import TimeLine, TimeLineEvent
 
 
 class Plan(object):
-    def __init__(self, start_time, end_time, start_pos, pickup_pos, end_pos, waiting_time, pickup_distance, requested_distance, bid=0, route=None):
+    def __init__(self, start_time, end_time, start_pos, pickup_pos, end_pos, waiting_time_period, pickup_distance, requested_distance, bid=0, route=None):
         self.start_time = start_time
         self.end_time = end_time
         self.start_pos = start_pos
         self.pickup_pos = pickup_pos
         self.end_pos = end_pos
-        self.waiting_time = waiting_time
+        self.waiting_time_period = waiting_time_period
         self.pickup_distance = pickup_distance
         self.requested_distance = requested_distance
         self.bid = bid
@@ -23,7 +23,7 @@ class Plan(object):
     def __repr__(self):
         return 'Plan(Time({}-{}), Waiting time: {}, Required time: {}, Pos({},{},{}), Pic Distance: {}, Req Distance:{}, Bid:{})'.format(self.start_time, self.end_time,
                                                                         (self.end_time - self.start_time),
-                                                                        self.waiting_time,
+                                                                        self.waiting_time_period,
                                                                         self.start_pos, self.pickup_pos, self.end_pos,
                                                                         self.pickup_distance,
                                                                         self.requested_distance,
@@ -46,8 +46,8 @@ class TaxiDriver(object):
     def get_payoff(self):
         return self.current_payoff
 
-    def get_waiting_times(self):
-        return np.asarray([plan.waiting_time for plan in self.plans])
+    def get_waiting_time_periods(self):
+        return np.asarray([plan.waiting_time_period for plan in self.plans])
 
     def is_restricted(self, call):
         '''
@@ -174,7 +174,7 @@ class TaxiDriver(object):
         pickup_time = self._compute_waiting_time(distance_to_customer)
 
         # waiting_time = elapsed time from when call came to when the customer is pickuped
-        waiting_time = call.time + pickup_time
+        waiting_time_period = abs(start_time - call.time) + pickup_time
 
         # driving_time = elapsed time from when the driver starts handling this call to when the customer arrived at the dest
         driving_time = self._compute_driving_time(distance_to_customer, distance_to_dest)
@@ -184,7 +184,7 @@ class TaxiDriver(object):
         bid = self._compute_bidding_price(distance_to_customer, distance_to_dest)
 
         plan = Plan(start_time, end_time, start_pos, pickup_pos, end_pos,
-                waiting_time=waiting_time,
+                waiting_time_period=waiting_time_period,
                 pickup_distance=distance_to_customer,
                 requested_distance=distance_to_dest,
                 bid=bid,
