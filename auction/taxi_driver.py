@@ -54,7 +54,7 @@ class TaxiDriver(object):
         self.charge_rate_per_kilometer = charge_rate_per_kilometer
         self.gas_cost_per_kilometer = gas_cost_per_kilometer
         self.driving_velocity = driving_velocity
-        self.current_payoff = 0
+        self.history_payoffs = []
         self.bidding_strategy = bidding_strategy
         self.lookahead_policy = lookahead_policy
         self.init_pos = init_pos
@@ -79,8 +79,8 @@ class TaxiDriver(object):
         dones = np.array([e.done for e in self.history])
         return states, actions, action_log_probs, rewards, dones
 
-    def get_payoff(self):
-        return self.current_payoff
+    def get_history_payoff(self):
+        return np.asarray(self.history_payoffs)
 
     def get_waiting_time_periods(self):
         return np.asarray([plan.waiting_time_period for plan in self.plans])
@@ -129,7 +129,7 @@ class TaxiDriver(object):
         self.plans.add(plan)
         
         plan_payoff = self._compute_payoff(distance_to_customer=plan.pickup_distance, distance_to_dest=plan.requested_distance, payment_to_the_auction=payment_to_the_auction)
-        self.current_payoff += plan_payoff
+        self.history_payoffs.append(plan_payoff)
         if self.bidding_strategy == 'lookahead':
             self.history.append(Experience(plan.make_state(), plan.bid, plan.bid_log_prob, plan_payoff, False))
         logging.debug('Driver-{} takes {}, payoff {:.2f}'.format(self.idx, plan, plan_payoff))

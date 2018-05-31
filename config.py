@@ -28,8 +28,8 @@ class Config(object):
         self.driver_schedules = daily_schedules_to_weekly_schedules(self.driver_schedules)
 
         # hyperparameters for payoff computation
-        self.payment_ratio = 0.95
-        self.charge_rate_per_kilometer = 60
+        self.payment_ratio = 0.5
+        self.charge_rate_per_kilometer = 20
         self.gas_cost_per_kilometer = 4
         self.driving_velocity = 30
         self.waiting_time_threshold = waiting_time_threshold

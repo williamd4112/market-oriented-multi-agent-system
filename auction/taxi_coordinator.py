@@ -6,7 +6,7 @@ from auction.rl import REINFORCEAgent
 from util.timeline import TimeLineEvent
 
 class TaxiCoordinator(object):
-    def __init__(self, city, auction_type, drivers_schedule, init_pos, bidding_strategy, driving_velocity=30,
+    def __init__(self, city, auction_type, payment_rule, drivers_schedule, init_pos, bidding_strategy, driving_velocity=30,
                     payment_ratio=0.3, charge_rate_per_kilometer=60, gas_cost_per_kilometer=4, waiting_time_threshold=15):
         '''
         city: where the taxi coordinator works on
@@ -20,6 +20,7 @@ class TaxiCoordinator(object):
         self.gas_cost_per_kilometer = gas_cost_per_kilometer
         self.waiting_time_threshold = waiting_time_threshold
         self.city = city 
+        self.payment_rule = payment_rule
         self.auction_type = auction_type
         self.bidding_strategy = bidding_strategy
         self.init_pos = init_pos
@@ -33,6 +34,9 @@ class TaxiCoordinator(object):
         Retrieve the payoff (DO NOT DIRECTLY ACCESS CURRENT_PAYOFF. ACCESS CURRENT_PAYOFF WITH THIS FUNCTION.)
         '''
         return self.current_payoff
+
+    def get_history_payoff(self):
+        return np.asarray(self.history_payoff)
 
     def dump_history_payoff(self, path):
         np.save(path, np.asarray(self.history_payoff))
@@ -64,8 +68,6 @@ class TaxiCoordinator(object):
                     has_call_taken = True
             if has_call_taken:
                 logging.debug('Accept {}'.format(customer_call))
-            else:                
-                logging.debug('Reject {}'.format(customer_call))
 
     def train(self):
         for driver in self.drivers:
@@ -115,18 +117,23 @@ class TaxiCoordinator(object):
 
         def _convert_bid(value, bid):
             if self.bidding_strategy == 'lookahead':
-                return np.clip(value + bid * 0.5 * value, 0, 1e9)
+                if np.isnan(bid):
+                    bid = value * 1.5
+                return np.clip(value + bid * 0.5 * value, 0, 1.5 * value)
             else:
                 return bid
 
         def _convert_payment(value, requested_distance, bid):
             payment_ratio = self.payment_ratio
             charge_rate_per_kilometer = self.charge_rate_per_kilometer
-            gas_cost_per_kilometer = self.gas_cost_per_kilometer            
-            payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * requested_distance - bid
-            #payment = payment_ratio * ((charge_rate_per_kilometer - gas_cost_per_kilometer) * requested_distance - bid)
-            #payment = payment_ratio * (bid)
-            logging.info('Value: {:.2f} Bid: {:.2f} Payment: {:.2f}'.format(value, bid, payment))
+            gas_cost_per_kilometer = self.gas_cost_per_kilometer
+            if self.payment_rule == 'type-1':
+                payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * requested_distance - bid
+            elif self.payment_rule == 'type-2':
+                payment = payment_ratio * ((charge_rate_per_kilometer - gas_cost_per_kilometer) * requested_distance - bid)
+            elif self.payment_rule == 'type-3':
+                payment = payment_ratio * (bid)
+            logging.info('Value: {:.2f} Payment: {:.2f}'.format(value, payment))
             return payment
 
         if len(drivers_and_plans) == 1:
@@ -151,6 +158,7 @@ class TaxiCoordinator(object):
             bid = _convert_bid(value, bid)
             payment =  _convert_payment(plan.value, plan.requested_distance, bid)
             return driver, plan, payment
+
     def _accumulate_payoff(self, payment):
         '''
         Increase the coordinator's payoff with payment
