@@ -2,13 +2,24 @@ import logging
 import copy
 import numpy as np
 
+from collections import namedtuple
+
 from sortedcontainers import SortedList
 
 from util.timeline import TimeLine, TimeLineEvent
 
+Experience = namedtuple('Experience', ['state', 'action', 'action_log_prob', 'reward', 'done'])
+
+def make_state(start_pos, pickup_pos, end_pos, start_time):
+    state = np.array([  start_pos[0], start_pos[1],
+                        pickup_pos[0], pickup_pos[1],
+                        end_pos[0], end_pos[1],
+                        start_time])
+    return state
+ 
 
 class Plan(object):
-    def __init__(self, start_time, end_time, start_pos, pickup_pos, end_pos, waiting_time_period, pickup_distance, requested_distance, bid=0, route=None):
+    def __init__(self, start_time, end_time, start_pos, pickup_pos, end_pos, waiting_time_period, pickup_distance, requested_distance, bid=0, bid_log_prob=0.0, value=None, route=None):
         self.start_time = start_time
         self.end_time = end_time
         self.start_pos = start_pos
@@ -18,10 +29,15 @@ class Plan(object):
         self.pickup_distance = pickup_distance
         self.requested_distance = requested_distance
         self.bid = bid
+        self.bid_log_prob = bid_log_prob
+        self.value = value
         self.route = route
 
+    def make_state(self):
+        return make_state(self.start_pos, self.pickup_pos, self.end_pos, self.start_time)
+
     def __repr__(self):
-        return 'Plan(Time({:.2f} - {:.2f}), Waiting time: {:.2f}, Required time: {:.2f}, Pos(({:.2f}, {:.2f}), ({:.2f}, {:.2f}), ({:.2f}, {:.2f})), Pic Distance: {:.2f}, Req Distance:{:.2f}, Bid:{:.2f})'.format(self.start_time, self.end_time,
+        return 'Plan(Time({:.2f} - {:.2f}), Waiting time: {:.2f}, Required time: {:.2f}, Pos(({:.2f}, {:.2f}), ({:.2f}, {:.2f}), ({:.2f}, {:.2f})), Pic Distance: {:.2f}, Req Distance:{:.2f}, Bid:{:.2f}, Value:{:.2f})'.format(self.start_time, self.end_time,
                                                                         (self.end_time - self.start_time),
                                                                         self.waiting_time_period,
                                                                         self.start_pos[0], self.start_pos[1],
@@ -29,10 +45,10 @@ class Plan(object):
                                                                         self.end_pos[0], self.end_pos[1],
                                                                         self.pickup_distance,
                                                                         self.requested_distance,
-                                                                        self.bid)
+                                                                        self.bid, self.value)
 
 class TaxiDriver(object):
-    def __init__(self, idx, init_pos, city_graph, bidding_strategy='truthful', 
+    def __init__(self, idx, init_pos, city_graph, bidding_strategy='truthful', lookahead_policy=None,
             charge_rate_per_kilometer=60, gas_cost_per_kilometer=4, driving_velocity=30):
         self.idx = idx
         self.charge_rate_per_kilometer = charge_rate_per_kilometer
@@ -40,10 +56,28 @@ class TaxiDriver(object):
         self.driving_velocity = driving_velocity
         self.current_payoff = 0
         self.bidding_strategy = bidding_strategy
+        self.lookahead_policy = lookahead_policy
         self.init_pos = init_pos
         self.city_graph = city_graph
         self.timeline = TimeLine()
         self.plans = SortedList(key=lambda plan: plan.start_time)
+        
+        if self.bidding_strategy == 'lookahead' and self.lookahead_policy is None:
+            raise Exception('error: lookahead policy must not be None.')
+        
+        # For training lookhead policy
+        self.history = []
+
+    def clear_history(self):
+        self.history.clear()
+
+    def get_history(self):
+        states = np.array([e.state for e in self.history])
+        actions = np.array([e.action for e in self.history])
+        action_log_probs = np.array([e.action_log_prob for e in self.history])
+        rewards = np.array([e.reward for e in self.history])
+        dones = np.array([e.done for e in self.history])
+        return states, actions, action_log_probs, rewards, dones
 
     def get_payoff(self):
         return self.current_payoff
@@ -96,8 +130,10 @@ class TaxiDriver(object):
         
         plan_payoff = self._compute_payoff(distance_to_customer=plan.pickup_distance, distance_to_dest=plan.requested_distance, payment_to_the_auction=payment_to_the_auction)
         self.current_payoff += plan_payoff
+        if self.bidding_strategy == 'lookahead':
+            self.history.append(Experience(plan.make_state(), plan.bid, plan.bid_log_prob, plan_payoff, False))
         logging.debug('Driver-{} takes {}, payoff {:.2f}'.format(self.idx, plan, plan_payoff))
-
+   
     def generate_plan(self, call):
         '''
         Generate a plan by call.
@@ -183,13 +219,13 @@ class TaxiDriver(object):
 
         end_time = start_time + driving_time
         
-        bid = self._compute_bidding_price(distance_to_customer, distance_to_dest)
-
+        bid, bid_log_prob = self._compute_bidding_price(start_pos, pickup_pos, end_pos, start_time, distance_to_customer, distance_to_dest)
+        value = self._compute_value(distance_to_customer, distance_to_dest)
         plan = Plan(start_time, end_time, start_pos, pickup_pos, end_pos,
                 waiting_time_period=waiting_time_period,
                 pickup_distance=distance_to_customer,
                 requested_distance=distance_to_dest,
-                bid=bid,
+                bid=bid, bid_log_prob=bid_log_prob, value=value,
                 route=route)
 
         return plan
@@ -214,17 +250,19 @@ class TaxiDriver(object):
         '''
         return (distance_to_customer + distance_to_dest) / self.driving_velocity
 
-    def _compute_bidding_price(self, distance_to_customer, distance_to_dest):
+    def _compute_bidding_price(self, start_pos, pickup_pos, end_pos, start_time, distance_to_customer, distance_to_dest):
         '''
         Retrieve the bidding price.
         '''
         if self.bidding_strategy == 'truthful':
-            # truthful bidding
-            bid = self._compute_value(distance_to_customer, distance_to_dest)
+            bid = np.clip(self._compute_value(distance_to_customer, distance_to_dest), 0, 1e9)
+            bid_log_prob = 0.0
         elif self.bidding_strategy == 'lookahead':
-            # TODO: Implement lookahead bidding
-            raise NotImplemented()
-        return bid
+            state = make_state(start_pos, pickup_pos, end_pos, start_time)
+            action, action_log_prob = self.lookahead_policy.act(state)
+            bid = action.numpy()[0][0]
+            bid_log_prob = action_log_prob
+        return bid, bid_log_prob
 
     def _compute_value(self, distance_to_customer, distance_to_dest):
         '''

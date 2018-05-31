@@ -3,7 +3,7 @@ Multi-agent system for Taxi coordinator
 
 TODO
 --
-- [ ] Lookahead bidding (probabilistic model conditioned on next position)
+- [x] Lookahead bidding (probabilistic model conditioned on next position)
 - [x] Check the formula of payoff computation
 - [x] Waiting time constraints (drivers' availability)
 - [ ] Fair profit sharing mechanism

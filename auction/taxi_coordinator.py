@@ -2,10 +2,11 @@ import logging
 import numpy as np
 
 from auction.taxi_driver import TaxiDriver
+from auction.rl import REINFORCEAgent
 from util.timeline import TimeLineEvent
 
 class TaxiCoordinator(object):
-    def __init__(self, city, auction_type, drivers_schedule, init_pos, driving_velocity=30,
+    def __init__(self, city, auction_type, drivers_schedule, init_pos, bidding_strategy, driving_velocity=30,
                     payment_ratio=0.3, charge_rate_per_kilometer=60, gas_cost_per_kilometer=4, waiting_time_threshold=15):
         '''
         city: where the taxi coordinator works on
@@ -20,6 +21,7 @@ class TaxiCoordinator(object):
         self.waiting_time_threshold = waiting_time_threshold
         self.city = city 
         self.auction_type = auction_type
+        self.bidding_strategy = bidding_strategy
         self.init_pos = init_pos
         self.drivers = self._init_drivers(drivers_schedule)
         self.current_payoff = 0
@@ -65,14 +67,25 @@ class TaxiCoordinator(object):
             else:                
                 logging.debug('Reject {}'.format(customer_call))
 
+    def train(self):
+        for driver in self.drivers:
+            states, actions, action_log_probs, rewards, dones = driver.get_history()
+            if len(states) > 0 and len(actions) > 0 and len(action_log_probs) > 0 and len(rewards) > 0 and len(dones) > 0:
+                driver.lookahead_policy.train(states, actions, action_log_probs, rewards, dones)
+            driver.clear_history()
+
     def _init_drivers(self, drivers_schedule):
         '''
         Initialize all drivers by schedules.
         Each schedule is a tuple (shift_start, shift_end) in simulation time(hr)
         '''        
         drivers = []
+        lookahead_policy = None
+        if self.bidding_strategy == 'lookahead':            
+            lookahead_policy = REINFORCEAgent(7, 1)
         for idx, schedule in enumerate(drivers_schedule):
             driver = TaxiDriver(idx=idx, init_pos=self.init_pos, city_graph=self.city.city_graph,
+                            bidding_strategy=self.bidding_strategy, lookahead_policy=lookahead_policy,
                             charge_rate_per_kilometer=self.charge_rate_per_kilometer,
                             gas_cost_per_kilometer=self.gas_cost_per_kilometer,
                             driving_velocity=self.driving_velocity)
@@ -99,28 +112,48 @@ class TaxiCoordinator(object):
             winning_payment = 30% * (charge_rate_per_kilometer - gas_cost_per_kilometer)* requested_distance – {lowest bidding-price or second lowest bidding price}
         '''
         assert len(drivers_and_plans) > 0
-        if len(drivers_and_plans) == 1:
-            return drivers_and_plans[0][0], drivers_and_plans[0][1], drivers_and_plans[0][1].bid
-        sorted_drivers_and_plans = sorted(drivers_and_plans, key=lambda dp: dp[1].bid)
-               
-        payment_ratio = self.payment_ratio
-        charge_rate_per_kilometer = self.charge_rate_per_kilometer
-        gas_cost_per_kilometer = self.gas_cost_per_kilometer
-        
-        driver = sorted_drivers_and_plans[0][0]
-        plan = sorted_drivers_and_plans[0][1]
 
-        if self.auction_type == 'first-price':
-            bid = sorted_drivers_and_plans[0][1].bid
-        elif self.auction_type == 'second-price':
-            bid = sorted_drivers_and_plans[1][1].bid
+        def _convert_bid(value, bid):
+            if self.bidding_strategy == 'lookahead':
+                return np.clip(value + bid * 0.5 * value, 0, 1e9)
+            else:
+                return bid
+
+        def _convert_payment(value, requested_distance, bid):
+            payment_ratio = self.payment_ratio
+            charge_rate_per_kilometer = self.charge_rate_per_kilometer
+            gas_cost_per_kilometer = self.gas_cost_per_kilometer            
+            payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * requested_distance - bid
+            logging.info('Value: {:.2f} Bid: {:.2f} Payment: {:.2f}'.format(value, bid, payment))
+            return payment
+
+        if len(drivers_and_plans) == 1:
+            driver = drivers_and_plans[0][0]
+            plan = drivers_and_plans[0][1]
+            bid = _convert_bid(plan.value, plan.bid)
+            payment = _convert_payment(plan.value, plan.requested_distance, bid)
+            logging.info('Payment: {:.2f}'.format(payment))
+            return driver, plan, payment
         else:
-            raise Exception('error: invalid auction_type.')
-        payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * plan.requested_distance - bid
-        return driver, plan, payment
-     
+            sorted_drivers_and_plans = sorted(drivers_and_plans, key=lambda dp: _convert_bid(dp[1].value, dp[1].bid))
+            driver = sorted_drivers_and_plans[0][0]
+            plan = sorted_drivers_and_plans[0][1]
+
+            if self.auction_type == 'first-price':
+                bid = sorted_drivers_and_plans[0][1].bid
+                value = sorted_drivers_and_plans[0][1].value           
+            elif self.auction_type == 'second-price':
+                bid = sorted_drivers_and_plans[1][1].bid
+                value = sorted_drivers_and_plans[1][1].value           
+            else:
+                raise Exception('error: invalid auction_type.')
+            bid = _convert_bid(value, bid)
+            payment =  _convert_payment(plan.value, plan.requested_distance, bid)
+            logging.info('Payment: {:.2f}'.format(payment))
+            return driver, plan, payment
     def _accumulate_payoff(self, payment):
         '''
         Increase the coordinator's payoff with payment
         '''
+        logging.info('Compay gain: {:.2f}'.format(payment))
         self.current_payoff += payment

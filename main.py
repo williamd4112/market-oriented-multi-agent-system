@@ -17,7 +17,9 @@ SHIFTS = ['3AM-1PM', '9AM-7PM', '6PM-4AM']
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--auction-type', help='Auction type of taxi coordinator', type=str, choices=['first-price', 'second-price'], required=True)
+    parser.add_argument('--bidding-strategy', help='Bidding strategy of taxi drivers', type=str, choices=['truthful', 'lookahead'], default='truthful')
     parser.add_argument('--timelimit', help='Simulation timelimit (hour_simulation)', type=int, default=24)
+    parser.add_argument('--waiting-time-threshold', help='Waiting time threshold (hour_simulation)', type=float, default=24)
     parser.add_argument('--dump', help='Dump the drivers\' schedules to JSON', action='store_true', default=False)
     parser.add_argument('--dump-company-payoff', help='Dump the history payoff to npy', action='store_true', default=False)
     parser.add_argument('--verbose', help='Show log', type=str, choices=['info', 'debug'], default=None)
@@ -31,10 +33,11 @@ if __name__ == '__main__':
 
     logging.basicConfig(format=FORMAT, level=level, datefmt='%d-%m-%Y:%H:%M:%S')
 
-    config = Config()
+    config = Config(waiting_time_threshold=args.waiting_time_threshold)
     city = City(config.intersections, initial_hour=0, lambd_schedule=config.city_lambd_schedule)
     coordinator = TaxiCoordinator(city=city, 
-                auction_type=args.auction_type, 
+                auction_type=args.auction_type,
+                bidding_strategy=args.bidding_strategy,
                 drivers_schedule=config.driver_schedules,
                 init_pos=config.init_pos,
                 payment_ratio=config.payment_ratio,
@@ -44,8 +47,12 @@ if __name__ == '__main__':
                 waiting_time_threshold=config.waiting_time_threshold)
 
     while city.time_sys.hour_in_sim() < args.timelimit:
-        customer_calls = city.step()
+        customer_calls = city.step()         
         coordinator.allocate(customer_calls)
+        if args.bidding_strategy == 'lookahead' and city.time_sys.hour_in_sim() % 8 == 0:
+            coordinator.train()
+            logging.info('Update the lookahead policy.')
+        
     coordinator.dump_history_payoff(os.path.join('data', 'company-history-payoff.npy'))
     for driver in coordinator.drivers:        
         events = driver.generate_complete_schedule(args.timelimit).events

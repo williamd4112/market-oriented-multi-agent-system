@@ -3,7 +3,7 @@ import copy
 from util.common import daily_schedules_to_weekly_schedules
 
 class Config(object):
-    def __init__(self):
+    def __init__(self, waiting_time_threshold=1./12.):
         self.intersections = [ 
             (0,0), (0,2), (0,6), (0,8), (0,12), (0,14),
             (2,0), (2,2), (2,6), (2,7), (2,8) , (2,12), (2,14),
@@ -32,7 +32,7 @@ class Config(object):
         self.charge_rate_per_kilometer = 60
         self.gas_cost_per_kilometer = 4
         self.driving_velocity = 30
-        self.waiting_time_threshold = (1./12.)
+        self.waiting_time_threshold = waiting_time_threshold
 
 
 
