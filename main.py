@@ -64,7 +64,7 @@ if __name__ == '__main__':
         shift = SHIFTS[int(driver.idx // 4)]
         logging.info('Shift {} Driver-{} payoff {:.2f}, average customer waiting time period {:.2f} hours, return cost {:.2f}'.format(shift, driver.idx, driver.get_payoff() - cost_return, driver.get_waiting_time_periods().mean(), cost_return))
         if args.dump:
-            driver.timeline.dump_json(os.path.join('data', 'driver-%03d.json' % (driver.idx)))
+            driver.generate_complete_schedule(args.timelimit, True).dump_json(os.path.join('data', 'driver-%03d.json' % (driver.idx)))
     logging.info('Company payoff: {:.2f}'.format(coordinator.get_payoff()))
  
 

@@ -124,6 +124,8 @@ class TaxiCoordinator(object):
             charge_rate_per_kilometer = self.charge_rate_per_kilometer
             gas_cost_per_kilometer = self.gas_cost_per_kilometer            
             payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * requested_distance - bid
+            #payment = payment_ratio * ((charge_rate_per_kilometer - gas_cost_per_kilometer) * requested_distance - bid)
+            #payment = payment_ratio * (bid)
             logging.info('Value: {:.2f} Bid: {:.2f} Payment: {:.2f}'.format(value, bid, payment))
             return payment
 
@@ -132,7 +134,6 @@ class TaxiCoordinator(object):
             plan = drivers_and_plans[0][1]
             bid = _convert_bid(plan.value, plan.bid)
             payment = _convert_payment(plan.value, plan.requested_distance, bid)
-            logging.info('Payment: {:.2f}'.format(payment))
             return driver, plan, payment
         else:
             sorted_drivers_and_plans = sorted(drivers_and_plans, key=lambda dp: _convert_bid(dp[1].value, dp[1].bid))
@@ -149,11 +150,9 @@ class TaxiCoordinator(object):
                 raise Exception('error: invalid auction_type.')
             bid = _convert_bid(value, bid)
             payment =  _convert_payment(plan.value, plan.requested_distance, bid)
-            logging.info('Payment: {:.2f}'.format(payment))
             return driver, plan, payment
     def _accumulate_payoff(self, payment):
         '''
         Increase the coordinator's payoff with payment
         '''
-        logging.info('Compay gain: {:.2f}'.format(payment))
         self.current_payoff += payment
