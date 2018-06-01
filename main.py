@@ -70,7 +70,7 @@ if __name__ == '__main__':
         for e in events:
             if e.event_name == 'Return':
                 distance_return += compute_route_distance(e.route)
-        cost_return = distance_return / config.gas_cost_per_kilometer
+        cost_return = distance_return * config.gas_cost_per_kilometer
         shift = SHIFTS[int(driver.idx // 4)]
         history_payoff_driver = driver.get_history_payoff()
         payoff_sum = history_payoff_driver.sum() - cost_return

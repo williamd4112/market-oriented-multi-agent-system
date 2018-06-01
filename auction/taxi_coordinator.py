@@ -118,7 +118,7 @@ class TaxiCoordinator(object):
         def _convert_bid(value, bid):
             if self.bidding_strategy == 'lookahead':
                 if np.isnan(bid):
-                    bid = value * 1.5
+                    bid = 1e6
                 return np.clip(value + bid * 0.5 * value, 0, 1.5 * value)
             else:
                 return bid
