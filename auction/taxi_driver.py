@@ -49,8 +49,10 @@ class Plan(object):
 
 class TaxiDriver(object):
     def __init__(self, idx, init_pos, city_graph, bidding_strategy='truthful', lookahead_policy=None,
-            charge_rate_per_kilometer=60, gas_cost_per_kilometer=4, driving_velocity=30):
+            payment_ratio=0.3, charge_rate_per_kilometer=60, gas_cost_per_kilometer=4, driving_velocity=30):
         self.idx = idx
+        #self.value_ratio = 1.0 - payment_ratio
+        self.value_ratio = 1.0
         self.charge_rate_per_kilometer = charge_rate_per_kilometer
         self.gas_cost_per_kilometer = gas_cost_per_kilometer
         self.driving_velocity = driving_velocity
@@ -220,7 +222,7 @@ class TaxiDriver(object):
         end_time = start_time + driving_time
         
         bid, bid_log_prob = self._compute_bidding_price(start_pos, pickup_pos, end_pos, start_time, distance_to_customer, distance_to_dest)
-        value = self._compute_value(distance_to_customer, distance_to_dest)
+        value = self._compute_value(distance_to_customer, distance_to_dest, 1.0)
         plan = Plan(start_time, end_time, start_pos, pickup_pos, end_pos,
                 waiting_time_period=waiting_time_period,
                 pickup_distance=distance_to_customer,
@@ -255,11 +257,11 @@ class TaxiDriver(object):
         Retrieve the bidding price.
         '''
         if self.bidding_strategy == 'truthful':
-            bid = np.clip(self._compute_value(distance_to_customer, distance_to_dest), 0, 1e9)
+            bid = np.clip(self._compute_value(distance_to_customer, distance_to_dest, self.value_ratio), 0, 1e9)
             bid_log_prob = 0.0
         elif self.bidding_strategy == 'shade':
             c = np.random.random()
-            bid = np.clip(c * self._compute_value(distance_to_customer, distance_to_dest), 0, 1e9)
+            bid = np.clip(c * self._compute_value(distance_to_customer, distance_to_dest, self.value_ratio), 0, 1e9)
             bid_log_prob = 0.0
         elif self.bidding_strategy == 'lookahead':
             state = make_state(start_pos, pickup_pos, end_pos, start_time)
@@ -268,7 +270,7 @@ class TaxiDriver(object):
             bid_log_prob = action_log_prob      
         return bid, bid_log_prob
 
-    def _compute_value(self, distance_to_customer, distance_to_dest):
+    def _compute_value(self, distance_to_customer, distance_to_dest, ratio):
         '''
         Retrieve the true value of plan
         '''
@@ -276,14 +278,14 @@ class TaxiDriver(object):
         charge_rate_per_kilometer = self.charge_rate_per_kilometer
         total_traveling_distance = (distance_to_customer + distance_to_dest)
         gas_cost_per_kilometer = self.gas_cost_per_kilometer
-        return chargeable_distance * (charge_rate_per_kilometer) - total_traveling_distance * gas_cost_per_kilometer
+        return ratio * (chargeable_distance * (charge_rate_per_kilometer - gas_cost_per_kilometer) - distance_to_customer * gas_cost_per_kilometer)
 
     def _compute_payoff(self, distance_to_customer, distance_to_dest, payment_to_the_auction):
         '''
         Retrieve the driver payoff = 
             chargeable_distance * (charge_rate_per_kilometer) - total_traveling_distance * gas-cost-per-kilometer – payment_to_the_auction.
         '''   
-        value = self._compute_value(distance_to_customer, distance_to_dest)
+        value = self._compute_value(distance_to_customer, distance_to_dest, 1.0)        
         return value - payment_to_the_auction
  
     def __repr__(self):

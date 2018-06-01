@@ -23,8 +23,10 @@ if __name__ == '__main__':
     parser.add_argument('--payment-rule', help='Payment computation rule', type=str, choices=['type-1', 'type-2', 'type-3'], required=True)
     parser.add_argument('--bidding-strategy', help='Bidding strategy of taxi drivers', type=str, choices=['truthful', 'shade', 'lookahead'], default='truthful')
     parser.add_argument('--timelimit', help='Simulation timelimit (hour_simulation)', type=int, default=24)
+    parser.add_argument('--payment-ratio', help='Payment ratio', type=float, default=0.3)
     parser.add_argument('--waiting-time-threshold', help='Waiting time threshold (hour_simulation)', type=float, default=24)
     parser.add_argument('--dump', help='Dump the drivers\' schedules to JSON', action='store_true', default=False)
+    parser.add_argument('--dump-history-calls', help='Dump all calls to JSON', action='store_true', default=False)
     parser.add_argument('--dump-company-payoff', help='Dump the history payoff to npy', action='store_true', default=False)
     parser.add_argument('--verbose', help='Show log', type=str, choices=['info', 'debug'], default=None)
     args = parser.parse_args()
@@ -37,7 +39,7 @@ if __name__ == '__main__':
 
     logging.basicConfig(format=FORMAT, level=level, datefmt='%d-%m-%Y:%H:%M:%S')
 
-    config = Config(waiting_time_threshold=args.waiting_time_threshold)
+    config = Config(waiting_time_threshold=args.waiting_time_threshold, payment_ratio=args.payment_ratio)
     city = City(config.intersections, initial_hour=0, lambd_schedule=config.city_lambd_schedule)
     coordinator = TaxiCoordinator(city=city, 
                 auction_type=args.auction_type,
@@ -60,7 +62,9 @@ if __name__ == '__main__':
 
     if args.dump_company_payoff:        
         coordinator.dump_history_payoff(os.path.join('data', 'company-history-payoff.npy'))
-
+    if args.dump_history_calls:
+        city.dump_history_calls_json(os.path.join('data', 'history-calls.json'))
+        
     # Print driver status
     print('===Drivers===')
     stats_drivers = []

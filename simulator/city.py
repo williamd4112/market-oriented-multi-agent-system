@@ -1,8 +1,9 @@
 import numpy as np
-
+import json
 from simulator.time_sys import TimeSystem
 from simulator.city_graph import CityGraph
 from simulator.city_customer_call_simulation import CityCustomerCallSimulation
+from simulator.customer_call import CustomerCall, CustomerCallJSONEncoder
  
 class City(object):
     def __init__(self, intersections, initial_hour, lambd_schedule=[]):
@@ -17,7 +18,12 @@ class City(object):
         self.time_sys = TimeSystem(initial_hour)
         
         self.customer_call_sim = CityCustomerCallSimulation(self.intersections, self.city_graph, self.time_sys)
+        self.history_calls = []
               
+    def dump_history_calls_json(self, path):
+        with open(path, 'w') as f:
+            json.dump(self.history_calls, f, cls=CustomerCallJSONEncoder)
+
     def step(self):
         # Default lambd is 1.0
         self.customer_call_sim.set(lambd=1.0)
@@ -33,7 +39,9 @@ class City(object):
         # Accumulate the time
         self.time_sys.step()
 
-        return sorted(customer_calls, key=lambda call: call.time)
+        calls = sorted(customer_calls, key=lambda call: call.time)
+        self.history_calls += calls
+        return calls
 
     def time(self):
         return str(self.time_sys)

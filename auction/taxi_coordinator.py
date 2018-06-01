@@ -54,7 +54,7 @@ class TaxiCoordinator(object):
                 plans = [driver.generate_plan(customer_call) for driver in unrestricted_drivers]
 
                 # Check the availability with drivers' timeline
-                available_drivers_and_plans = [(driver, plan) for driver, plan in zip(unrestricted_drivers, plans) if driver.is_available(plan) and plan.waiting_time_period < self.waiting_time_threshold]                 
+                available_drivers_and_plans = [(driver, plan) for driver, plan in zip(unrestricted_drivers, plans) if driver.is_available(plan) and plan.waiting_time_period < self.waiting_time_threshold and plan.value >= 0]                 
                 if len(available_drivers_and_plans) > 0:
                     # Select the drivers according to auction algorithm
                     winner_driver, winner_plan, winner_payment = self._choose_bid(available_drivers_and_plans)
@@ -88,6 +88,7 @@ class TaxiCoordinator(object):
         for idx, schedule in enumerate(drivers_schedule):
             driver = TaxiDriver(idx=idx, init_pos=self.init_pos, city_graph=self.city.city_graph,
                             bidding_strategy=self.bidding_strategy, lookahead_policy=lookahead_policy,
+                            payment_ratio=self.payment_ratio,
                             charge_rate_per_kilometer=self.charge_rate_per_kilometer,
                             gas_cost_per_kilometer=self.gas_cost_per_kilometer,
                             driving_velocity=self.driving_velocity)
@@ -130,9 +131,9 @@ class TaxiCoordinator(object):
             if self.payment_rule == 'type-1':
                 payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * requested_distance - bid
             elif self.payment_rule == 'type-2':
-                payment = payment_ratio * ((charge_rate_per_kilometer - gas_cost_per_kilometer) * requested_distance - bid)
+                payment = payment_ratio * bid
             elif self.payment_rule == 'type-3':
-                payment = payment_ratio * (bid)
+                payment = payment_ratio * (charge_rate_per_kilometer - gas_cost_per_kilometer) * requested_distance - (1.0 - payment_ratio) * bid
             logging.info('Value: {:.2f} Payment: {:.2f}'.format(value, payment))
             return payment
 
@@ -143,7 +144,8 @@ class TaxiCoordinator(object):
             payment = _convert_payment(plan.value, plan.requested_distance, bid)
             return driver, plan, payment
         else:
-            sorted_drivers_and_plans = sorted(drivers_and_plans, key=lambda dp: _convert_bid(dp[1].value, dp[1].bid))
+            reverse = True if self.payment_rule == 'type-2' else False
+            sorted_drivers_and_plans = sorted(drivers_and_plans, key=lambda dp: _convert_bid(dp[1].value, dp[1].bid), reverse=reverse)
             driver = sorted_drivers_and_plans[0][0]
             plan = sorted_drivers_and_plans[0][1]
 
