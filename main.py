@@ -21,7 +21,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--auction-type', help='Auction type of taxi coordinator', type=str, choices=['first-price', 'second-price'], required=True)
     parser.add_argument('--payment-rule', help='Payment computation rule', type=str, choices=['type-1', 'type-2', 'type-3'], required=True)
-    parser.add_argument('--bidding-strategy', help='Bidding strategy of taxi drivers', type=str, choices=['truthful', 'lookahead'], default='truthful')
+    parser.add_argument('--bidding-strategy', help='Bidding strategy of taxi drivers', type=str, choices=['truthful', 'shade', 'lookahead'], default='truthful')
     parser.add_argument('--timelimit', help='Simulation timelimit (hour_simulation)', type=int, default=24)
     parser.add_argument('--waiting-time-threshold', help='Waiting time threshold (hour_simulation)', type=float, default=24)
     parser.add_argument('--dump', help='Dump the drivers\' schedules to JSON', action='store_true', default=False)

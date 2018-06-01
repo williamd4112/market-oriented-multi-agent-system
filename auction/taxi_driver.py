@@ -257,11 +257,15 @@ class TaxiDriver(object):
         if self.bidding_strategy == 'truthful':
             bid = np.clip(self._compute_value(distance_to_customer, distance_to_dest), 0, 1e9)
             bid_log_prob = 0.0
+        elif self.bidding_strategy == 'shade':
+            c = np.random.random()
+            bid = np.clip(c * self._compute_value(distance_to_customer, distance_to_dest), 0, 1e9)
+            bid_log_prob = 0.0
         elif self.bidding_strategy == 'lookahead':
             state = make_state(start_pos, pickup_pos, end_pos, start_time)
             action, action_log_prob = self.lookahead_policy.act(state)
             bid = action.numpy()[0][0]
-            bid_log_prob = action_log_prob
+            bid_log_prob = action_log_prob      
         return bid, bid_log_prob
 
     def _compute_value(self, distance_to_customer, distance_to_dest):
