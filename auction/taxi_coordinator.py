@@ -120,7 +120,7 @@ class TaxiCoordinator(object):
             if self.bidding_strategy == 'lookahead':
                 if np.isnan(bid):
                     bid = 1e6
-                return np.clip(value + bid * 0.5 * value, 0, 1.5 * value)
+                return np.clip(value + bid * 0.5 * value, 0, 1e6)
             else:
                 return bid
 

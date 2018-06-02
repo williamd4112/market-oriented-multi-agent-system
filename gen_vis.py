@@ -1,12 +1,6 @@
 import json
 import numpy as np
 
-SPEED = 0.5
-ROUTE = [(0, 0), (5, 0), (10, 0), (10, 10)]
-TIMES = [0, 5 / SPEED, 10 / SPEED, 20 / SPEED]
-
-print('Abs pos', ROUTE)
-
 def compute_timings(start_time, route, speed):
     timings = [start_time]
     base_time = start_time
@@ -19,9 +13,6 @@ def compute_timings(start_time, route, speed):
         timings.append(timing)
     return timings
 
-print('Correct timings', TIMES)
-print('Computed timmings', compute_timings(0,ROUTE, SPEED))
-
 def compute(route, timings, t):            
     prev_pos, prev_timing = route[0], timings[0]
     for pos, timing in zip(route[1:], timings[1:]):
@@ -32,9 +23,5 @@ def compute(route, timings, t):
             return interp_pos
         prev_pos = pos
         prev_timing = timing
-    raise Exception('error: t shoud be smaller than final timing.')
-
-t = 40
-timings = compute_timings(0, ROUTE, SPEED)  
-print(compute(ROUTE, timings, t), 't', t)
-        
+    return route[-1]
+       

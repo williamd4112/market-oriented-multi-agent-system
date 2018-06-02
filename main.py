@@ -82,7 +82,8 @@ if __name__ == '__main__':
         waiting_time_period_avg = driver.get_waiting_time_periods().mean()
         stats_drivers.append([shift, driver.idx, payoff_sum, payoff_avg, waiting_time_period_avg, cost_return])
         if args.dump:
-            driver.generate_complete_schedule(args.timelimit, True).dump_json(os.path.join('data', 'driver-%03d.json' % (driver.idx)))
+            relative = False
+            driver.generate_complete_schedule(args.timelimit, relative).dump_json(os.path.join('data', 'driver-relative-%d-%03d.json' % (relative, driver.idx)))
     print(tabulate(stats_drivers, 
             headers=['Shift', 'ID', 'Acc. payoff', 'Avg. payoff', 'Avg. waiting time (hours)', 'Return cost']))
 

@@ -149,7 +149,11 @@ class TaxiDriver(object):
         '''
         timeline_copy = copy.deepcopy(self.timeline)
         prev_e = None
-        for e in self.timeline.events:
+
+        if self.timeline.events[0] is not None:
+            timeline_copy.add_event(TimeLineEvent(0, self.timeline.events[0].start_time, 'Free'))        
+
+        for e in self.timeline.events:            
             if e.end_time <= timelimit:               
                 if e.event_name == 'Call':
                     if prev_e is not None and prev_e.end_time < e.start_time:
@@ -261,7 +265,7 @@ class TaxiDriver(object):
             bid_log_prob = 0.0
         elif self.bidding_strategy == 'shade':
             c = np.random.random()
-            bid = np.clip(c * self._compute_value(distance_to_customer, distance_to_dest, self.value_ratio), 0, 1e9)
+            bid = np.clip((c + 1.0) * self._compute_value(distance_to_customer, distance_to_dest, self.value_ratio), 0, 1e9)
             bid_log_prob = 0.0
         elif self.bidding_strategy == 'lookahead':
             state = make_state(start_pos, pickup_pos, end_pos, start_time)
