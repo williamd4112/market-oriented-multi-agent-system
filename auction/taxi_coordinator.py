@@ -1,4 +1,5 @@
 import logging
+import json
 import numpy as np
 
 from auction.taxi_driver import TaxiDriver
@@ -27,6 +28,7 @@ class TaxiCoordinator(object):
         self.drivers = self._init_drivers(drivers_schedule)
         self.current_payoff = 0
         self.history_payoff = []
+        self.history_calls = []
         self.prev_time = 0
 
     def get_payoff(self):
@@ -40,6 +42,10 @@ class TaxiCoordinator(object):
 
     def dump_history_payoff(self, path):
         np.save(path, np.asarray(self.history_payoff))
+
+    def dump_history_calls_json(self, path):
+        with open(path, 'w') as f:
+            json.dump(self.history_calls, f)
 
     def allocate(self, customer_calls):        
         for customer_call in customer_calls:
@@ -68,6 +74,7 @@ class TaxiCoordinator(object):
                     has_call_taken = True
             if has_call_taken:
                 logging.debug('Accept {}'.format(customer_call))
+            self.history_calls.append({'time': customer_call.time, 'start_pos': customer_call.start_pos, 'accept': has_call_taken})
 
     def train(self):
         for driver in self.drivers:
