@@ -2,7 +2,10 @@ import pygame
 import sys
 import json
 import os
+
 from gen_vis import compute_timings, compute
+from simulator.city_graph import CityGraph
+from config import Config
 
 SCREEN_SIZE = WIDTH, HEIGHT = (1400, 700)
 BLACK = (0, 0, 0)
@@ -57,11 +60,26 @@ class Car(object):
         print(pos, self.pos)
         pygame.draw.circle(screen, self.color, pos, CIRCLE_RADIUS, 0)
 
+class Grid(object):
+    def __init__(self, edges):
+        self.edges = edges
+   
+    def draw(self):
+        global screen
+        for e in self.edges:
+            u = (int(e[0][1] * 100), 700 - int(e[0][0] * 100))
+            v = (int(e[1][1] * 100), 700 - int(e[1][0] * 100))
+            pygame.draw.line(screen, WHITE, u, (v))
+
 def load(path):
     with open(path, 'r') as f:
         schedule = json.load(f)
     return Car(schedule, 30)
 cars = [load(os.path.join('data', 'driver-relative-0-%03d.json' % i)) for i in range(12)]
+
+edges = CityGraph(Config().intersections).edge_poses
+grid = Grid(edges)
+
 
 def update(t):
     for car in cars:
@@ -71,6 +89,7 @@ t = 0
 def render():
     global t
     screen.fill(BLACK)
+    grid.draw()
     for car in cars:        
         car.draw()
     pygame.display.update()

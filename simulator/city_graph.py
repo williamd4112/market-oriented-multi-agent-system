@@ -70,6 +70,7 @@ class CityGraph(Graph):
                 if u != v and self.adj_matrix[u, v] < INF:
                     edges.append((u, v))
         self.edges = edges
+        self.edge_poses = [(self.get_pos(u), self.get_pos(v)) for u, v in self.edges]
         super(CityGraph, self).__init__(adj_matrix)
 
     def get_id(self, pos):
