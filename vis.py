@@ -4,12 +4,14 @@ import json
 import os
 from gen_vis import compute_timings, compute
 
-SCREEN_SIZE = WIDTH, HEIGHT = (640, 480)
+SCREEN_SIZE = WIDTH, HEIGHT = (1400, 700)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 50, 50)
 GREEN = (50, 255, 50)
-CIRCLE_RADIUS = 30
+BLUE = (0, 0, 255)
+CIRCLE_RADIUS = 20
+SPEED = 0.5
 
 # Initialization
 pygame.init()
@@ -23,9 +25,11 @@ class Car(object):
         self.schedule = schedule
         self.speed = speed
         self.pos = [4, 8]
+        self.color = GREEN
         self.prev_event = None    
     
     def update(self, t):
+        global SPEED 
         print('time', t)
         for s in self.schedule:   
             if t >= s['start_time'] and t < s['end_time']:
@@ -36,38 +40,45 @@ class Car(object):
                         self.pos = [4, 8]
                     elif self.prev_event['event_name'] == 'Call' or self.prev_event['event_name'] == 'Return':
                         self.pos = self.prev_event['route'][-1]
+                    self.color = GREEN
                 if event_name == 'Call' or event_name == 'Return':                            
                     timings = compute_timings(s['start_time'], s['route'], self.speed)
                     print(timings)
                     self.pos = compute(s['route'], timings, t)
-                if event_name == 'Shift': self.pos = [4, 8]
+                    self.color = RED
+                if event_name == 'Shift': 
+                    self.pos = [4, 8]
+                    self.color = BLUE
                 self.prev_event = s                
                 break
     def draw(self):        
         global screen
-        pos = [int(self.pos[0] * 20 + 320), int(self.pos[1] * 20 + 320)]
+        pos = [int(self.pos[1] * 100), 700 - int(self.pos[0] * 100)]
         print(pos, self.pos)
-        pygame.draw.circle(screen, RED, pos, CIRCLE_RADIUS, 0)
+        pygame.draw.circle(screen, self.color, pos, CIRCLE_RADIUS, 0)
 
-path = os.path.join('data', 'driver-relative-0-000.json')
-with open(path, 'r') as f:
-    schedule = json.load(f)
-cars = [Car(schedule, 30)]
+def load(path):
+    with open(path, 'r') as f:
+        schedule = json.load(f)
+    return Car(schedule, 30)
+cars = [load(os.path.join('data', 'driver-relative-0-%03d.json' % i)) for i in range(12)]
 
 def update(t):
     for car in cars:
         car.update(t)    
 
+t = 0
 def render():
+    global t
     screen.fill(BLACK)
     for car in cars:        
         car.draw()
     pygame.display.update()
     fps.tick(60)
+    t += 1
 
-t = 0
 while True:
-    update(t)
+    update(t * (SPEED / 30.0))
     render()
-    t += float(fps.get_time() / 5000.0)
+    #t += float(fps.get_time() / 2000.0)
 
